@@ -2380,6 +2380,7 @@ window.UI = {
             overlay.setAttribute('role', 'dialog');
             overlay.setAttribute('aria-modal', 'true');
             overlay.setAttribute('aria-label', rawTitle);
+            overlay.style.cssText = 'position:fixed;inset:0;z-index:999999;display:flex;align-items:center;justify-content:center;';
             overlay.innerHTML = `
                 <div class="hse-post-login-overlay-backdrop"></div>
                 <div class="hse-post-login-overlay-card">
@@ -2447,7 +2448,8 @@ window.UI = {
             }
         };
 
-        showItem(0);
+        // تأجيل العرض إلى الـ tick التالي لضمان ظهور السياسة بعد أول دخول
+        setTimeout(function() { showItem(0); }, 0);
     },
 
     /** متابعة تهيئة التطبيق الرئيسي (بعد شاشة السياسات أو مباشرة بعد الدخول) */

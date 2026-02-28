@@ -5676,10 +5676,7 @@
                     setTimeout(function() {
                         var ov = document.getElementById('hse-session-restore-overlay');
                         if (ov && ov.parentNode) ov.parentNode.removeChild(ov);
-                        if (window._hseAppVisible) return;
-                        var mainApp = document.getElementById('main-app');
-                        if (mainApp && mainApp.style && mainApp.style.display === 'flex') return;
-                        if (loginEl) loginEl.style.display = '';
+                        // عند وجود جلسة: لا نعيد إظهار شاشة الدخول أبداً — نبقى على نفس الصفحة حتى يكتمل تحميل التطبيق
                     }, 2000);
                 }
             } catch (e) {}
