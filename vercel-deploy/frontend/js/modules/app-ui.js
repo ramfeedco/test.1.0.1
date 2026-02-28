@@ -2291,30 +2291,47 @@ window.UI = {
             if (!user) return true;
             const daysMs = (this._postLoginPolicyValidityDays || 10) * 24 * 60 * 60 * 1000;
             const now = Date.now();
-            const getSeenAt = () => {
-                const v = user.postLoginPolicySeenAt;
-                if (v && String(v).trim() && String(v).toLowerCase() !== 'undefined' && String(v).toLowerCase() !== 'null') return new Date(v).getTime();
-                const users = AppState.appData?.users;
-                if (Array.isArray(users)) {
-                    const email = (user.email || '').toLowerCase().trim();
-                    const found = users.find(u => (u && (String(u.email || '').toLowerCase().trim() === email || String(u.id || '') === String(user.id || ''))));
-                    const fv = found && found.postLoginPolicySeenAt;
-                    if (fv && String(fv).trim()) return new Date(fv).getTime();
-                }
-                return 0;
+            const parseTime = (v) => {
+                if (!v || !String(v).trim()) return 0;
+                const s = String(v).toLowerCase().trim();
+                if (s === 'undefined' || s === 'null') return 0;
+                const t = new Date(v).getTime();
+                return isNaN(t) ? 0 : t;
             };
-            const seenAt = getSeenAt();
-            if (!seenAt) return false; // أول مرة — نعرض السياسة
+            // ضمان ظهور السياسة مرة واحدة على الأقل في هذا المتصفح: إذا لم يُسجّل فيها مسبقاً نعرضها
+            try {
+                if (typeof localStorage !== 'undefined' && !localStorage.getItem('hse_policy_last_seen_at'))
+                    return false; // أول مرة في هذا المتصفح — نعرض السياسة دائماً
+            } catch (e) {}
+            // مصدران: localStorage + المستخدم من الجلسة/قاعدة البيانات (لحساب تكرار كل 10 أيام)
+            let seenAt = 0;
+            try {
+                const localSeen = typeof localStorage !== 'undefined' && localStorage.getItem('hse_policy_last_seen_at');
+                if (localSeen) seenAt = Math.max(seenAt, parseTime(localSeen));
+            } catch (e) {}
+            const v = user.postLoginPolicySeenAt;
+            if (v) seenAt = Math.max(seenAt, parseTime(v));
+            const users = AppState.appData?.users;
+            if (Array.isArray(users)) {
+                const email = (user.email || '').toLowerCase().trim();
+                const found = users.find(u => (u && (String(u.email || '').toLowerCase().trim() === email || String(u.id || '') === String(user.id || ''))));
+                const fv = found && found.postLoginPolicySeenAt;
+                if (fv) seenAt = Math.max(seenAt, parseTime(fv));
+            }
+            if (!seenAt) return false; // لا يوجد تاريخ مشاهدة صالح — نعرض السياسة
             if (now - seenAt >= daysMs) return false; // مرّ أكثر من 10 أيام — نعرض السياسة مرة أخرى
             return true; // شاهد خلال آخر 10 أيام — لا نعرض
         } catch (e) { return false; }
     },
 
-    /** تسجيل أن المستخدم الحالي قد شاهد سياسة ما بعد الدخول (حفظ في Backend + AppState) */
+    /** تسجيل أن المستخدم الحالي قد شاهد سياسة ما بعد الدخول (حفظ في Backend + AppState + localStorage لضمان ظهورها مرة واحدة على الأقل في هذا المتصفح) */
     _markCurrentUserPostLoginPolicySeen() {
         const user = AppState.currentUser;
         if (!user) return;
         const seenAt = new Date().toISOString();
+        try {
+            if (typeof localStorage !== 'undefined') localStorage.setItem('hse_policy_last_seen_at', seenAt);
+        } catch (e) {}
         if (AppState.currentUser) AppState.currentUser.postLoginPolicySeenAt = seenAt;
         const users = AppState.appData?.users;
         if (Array.isArray(users)) {
