@@ -2166,6 +2166,8 @@ window.UI = {
         }
 
         const postLoginItems = this._getPostLoginItemsForDisplay();
+        // عند تنشيط الصفحة أو إعادة التحميل: عدم عرض السياسة إذا كان المستخدم قد شاهدها مسبقاً
+        const shouldShowPolicy = postLoginItems.length > 0 && !this._currentUserHasSeenPostLoginPolicy();
 
         // الآن إخفاء شاشة الدخول وتهيئة العرض ثم عرض السياسة مباشرة (بدون شاشة تحضيرية داكنة)
         if (loginScreen) {
@@ -2175,7 +2177,7 @@ window.UI = {
         document.body.classList.add('app-active');
         if (mainApp) mainApp.style.display = 'none';
 
-        if (postLoginItems.length > 0) {
+        if (shouldShowPolicy) {
             document.documentElement.classList.add('hse-post-login-overlay-active');
             document.body.classList.add('hse-post-login-overlay-active');
             if (AppState.debugMode) Utils.safeLog('عرض شاشة السياسة بعد الدخول (قبل لوحة التحكم)، عدد العناصر:', postLoginItems.length);

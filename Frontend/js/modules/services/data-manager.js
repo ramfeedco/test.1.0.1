@@ -508,18 +508,14 @@ const DataManager = {
                 } catch (e2) {
                     Utils.safeWarn('⚠️ فشل حفظ النسخة المخففة بعد امتلاء التخزين:', e2);
                 }
-                if (typeof Notification !== 'undefined' && Notification.warning) {
-                    Notification.warning('التخزين المحلي ممتلئ أو البيانات كبيرة. سيتم المزامنة مع Google Sheets عند الاتصال.');
-                }
+                // عدم إظهار رسالة للمستخدم؛ المزامنة تتم تلقائياً عند الاتصال
                 return false;
             }
             if (isSecurityError) {
                 Utils.safeWarn('⚠️ التخزين المحلي غير متاح (وضع خاص أو إعدادات المتصفح)');
                 return false;
             }
-            if (typeof Notification !== 'undefined' && Notification.warning) {
-                Notification.warning('لم يتم حفظ نسخة محلية. سيتم المزامنة مع السيرفر عند الحاجة.');
-            }
+            // عدم إظهار رسالة للمستخدم؛ المزامنة تتم تلقائياً عند الحاجة
             return false;
         }
     },
