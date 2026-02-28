@@ -100,6 +100,10 @@ window.UI = {
         // إعادة تعيين العداد عند عرض شاشة الدخول فعلياً
         this._loginScreenRetryCount = 0;
 
+        // إزالة overlay استعادة الجلسة عند عرض شاشة الدخول فعلياً
+        const restoreOverlay = document.getElementById('hse-session-restore-overlay');
+        if (restoreOverlay && restoreOverlay.parentNode) restoreOverlay.remove();
+
         const loginScreen = document.getElementById('login-screen');
         const mainApp = document.getElementById('main-app');
         const usernameInput = document.getElementById('username');
@@ -2137,6 +2141,10 @@ window.UI = {
      * عرض التطبيق الرئيسي
      */
     async showMainApp() {
+        // إزالة overlay استعادة الجلسة إن وُجد (بعد نجاح الاستعادة)
+        const restoreOverlay = document.getElementById('hse-session-restore-overlay');
+        if (restoreOverlay && restoreOverlay.parentNode) restoreOverlay.remove();
+
         // التحقق من وجود مستخدم مسجل دخول
         if (!AppState.currentUser) {
             if (AppState.debugMode) Utils.safeLog('⚠️ لا يوجد مستخدم مسجل دخول - لا يمكن عرض التطبيق');

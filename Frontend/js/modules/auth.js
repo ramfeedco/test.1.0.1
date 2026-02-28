@@ -1331,9 +1331,17 @@ window.Auth = {
                     const user = JSON.parse(sessionData);
                     // التحقق من أن البيانات صحيحة وأن المستخدم ما زال موجوداً
                     if (user && user.email) {
+                        // استعادة hse_session_id من بيانات الجلسة إن فُقد (بعد إعادة تحميل في نفس التبويب)
+                        let currentSessionId = sessionStorage.getItem('hse_session_id');
+                        if (!currentSessionId && user.sessionId) {
+                            try {
+                                sessionStorage.setItem('hse_session_id', user.sessionId);
+                                currentSessionId = user.sessionId;
+                            } catch (e) { /* ignore */ }
+                        }
+
                         // التحقق من وجود المستخدم ي قاعدة البيانات
                         const email = user.email.toLowerCase();
-                        // تم إزالة validUsers لأسباب أمنية - البحث في قاعدة البيانات فقط
                         const users = AppState.appData.users || [];
                         let foundUser = users.find(u => u.email && u.email.toLowerCase() === email);
 
@@ -1347,12 +1355,10 @@ window.Auth = {
                             return false;
                         }
 
-                        // التحقق من معرف الجلسة - يجب أن يطابق معرف الجلسة المحفوظ
-                        const currentSessionId = sessionStorage.getItem('hse_session_id');
-                        if (foundUser && foundUser.isOnline === true && foundUser.activeSessionId) {
-                            // إذا كان المستخدم متصل وكان له معرف جلسة نشط
+                        // التحقق من معرف الجلسة: عند إعادة التحميل (نفس التبويب) لا نرفض الجلسة بسبب كاش قديم
+                        if (!currentSessionId) currentSessionId = sessionStorage.getItem('hse_session_id');
+                        if (foundUser && foundUser.isOnline === true && foundUser.activeSessionId && !AppState.isPageRefresh) {
                             if (foundUser.activeSessionId !== currentSessionId) {
-                                // معرف الجلسة لا يطابق - المستخدم متصل من جهاز آخر
                                 Utils.safeWarn('⚠️ المستخدم متصل من جهاز آخر - لا يمكن استعادة الجلسة');
                                 sessionStorage.removeItem('hse_current_session');
                                 localStorage.removeItem('hse_remember_user');
@@ -1490,12 +1496,18 @@ window.Auth = {
                     const user = JSON.parse(remembered);
                     // التحقق من صحة البيانات وأن المستخدم ما زال موجوداً
                     if (user && user.email) {
+                        let currentSessionId = sessionStorage.getItem('hse_session_id');
+                        if (!currentSessionId && user.sessionId) {
+                            try {
+                                sessionStorage.setItem('hse_session_id', user.sessionId);
+                                currentSessionId = user.sessionId;
+                            } catch (e) { /* ignore */ }
+                        }
+
                         const email = user.email.toLowerCase();
-                        // تم إزالة validUsers لأسباب أمنية - البحث في قاعدة البيانات فقط
                         const users = AppState.appData.users || [];
                         let foundUser = users.find(u => u.email && u.email.toLowerCase() === email);
 
-                        // فقط إذا وُجد المستخدم وكان غير مفعّل، نمسح الجلسة
                         if (foundUser && foundUser.active === false) {
                             localStorage.removeItem('hse_remember_user');
                             sessionStorage.removeItem('hse_session_id');
@@ -1503,12 +1515,8 @@ window.Auth = {
                             return false;
                         }
 
-                        // التحقق من معرف الجلسة - يجب أن يطابق معرف الجلسة المحفوظ
-                        const currentSessionId = sessionStorage.getItem('hse_session_id');
-                        if (foundUser && foundUser.isOnline === true && foundUser.activeSessionId) {
-                            // إذا كان المستخدم متصل وكان له معرف جلسة نشط
+                        if (foundUser && foundUser.isOnline === true && foundUser.activeSessionId && !AppState.isPageRefresh) {
                             if (foundUser.activeSessionId !== currentSessionId) {
-                                // معرف الجلسة لا يطابق - المستخدم متصل من جهاز آخر
                                 Utils.safeWarn('⚠️ المستخدم متصل من جهاز آخر - لا يمكن استعادة الجلسة من localStorage');
                                 localStorage.removeItem('hse_remember_user');
                                 sessionStorage.removeItem('hse_session_id');
@@ -1517,7 +1525,6 @@ window.Auth = {
                             }
                         }
 
-                        // التحقق من أن معرف الجلسة في بيانات localStorage يطابق المعرف الحالي (إن وجد)
                         if (user.sessionId && currentSessionId && user.sessionId !== currentSessionId) {
                             Utils.safeWarn('⚠️ معرف الجلسة في localStorage غير متطابق - مسح الجلسة القديمة');
                             localStorage.removeItem('hse_remember_user');

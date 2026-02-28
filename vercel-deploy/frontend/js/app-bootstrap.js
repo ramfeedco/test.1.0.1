@@ -698,15 +698,25 @@
             // إذا كانت هناك بيانات جلسة، ننتظر حتى تكون AppState و AppState.appData جاهزة
             if (typeof window.Auth !== 'undefined' && typeof window.Auth.checkRememberedUser === 'function') {
                 try {
-                    // التأكد من تحميل AppState و AppState.appData قبل التحقق
+                    // التأكد من تحميل AppState و AppState.appData قبل التحقق (انتظار أطول لضمان اكتمال DataManager.load)
                     if (typeof AppState === 'undefined' || !AppState.appData) {
-                        log('⚠️ AppState أو AppState.appData غير محمل - إعادة المحاولة...');
-                        // إعادة المحاولة بعد فترة قصيرة (لكن فقط إذا كانت هناك جلسة)
+                        const retries = this._sessionRestoreRetries = (this._sessionRestoreRetries || 0) + 1;
+                        const maxRetries = 18; // نحو 9 ثوانٍ (18 × 500ms) قبل الاستسلام
+                        if (retries > maxRetries) {
+                            log('ℹ️ انتهت محاولات انتظار appData - عرض شاشة الدخول');
+                            this._sessionRestoreRetries = 0;
+                            if (typeof window.UI !== 'undefined' && typeof window.UI.showLoginScreen === 'function') {
+                                window.UI.showLoginScreen();
+                            }
+                            return;
+                        }
+                        log('⚠️ AppState أو AppState.appData غير محمل - إعادة المحاولة ' + retries + '/' + maxRetries + '...');
                         setTimeout(() => {
                             this.checkAndRestoreSession();
                         }, 500);
                         return;
                     }
+                    this._sessionRestoreRetries = 0;
                     
                     // تعيين علامة إعادة التحميل قبل التحقق
                     AppState.isPageRefresh = true;
