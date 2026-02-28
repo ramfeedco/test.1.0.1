@@ -2181,6 +2181,20 @@ window.UI = {
         if (AppState.companySettings.postLoginItems === undefined) {
             AppState.companySettings.postLoginItems = [];
         }
+        // بعد أول دخول: إذا كانت السياسات فارغة من الـ API، نجرب قراءة من localStorage (مثلاً من إعدادات سابقة)
+        if (!AppState.isPageRefresh && (!Array.isArray(AppState.companySettings.postLoginItems) || AppState.companySettings.postLoginItems.length === 0)) {
+            try {
+                const saved = typeof localStorage !== 'undefined' && localStorage.getItem('hse_company_settings');
+                if (saved) {
+                    const parsed = JSON.parse(saved);
+                    const raw = parsed && parsed.postLoginItems;
+                    if (raw !== undefined && raw !== null) {
+                        const arr = Array.isArray(raw) ? raw : (typeof raw === 'string' && raw.trim() ? (() => { try { const p = JSON.parse(raw); return Array.isArray(p) ? p : []; } catch (e) { return []; } })() : []);
+                        if (arr.length > 0) AppState.companySettings.postLoginItems = arr;
+                    }
+                }
+            } catch (e) { /* تجاهل */ }
+        }
 
         const postLoginItems = this._getPostLoginItemsForDisplay();
         // عند تنشيط الصفحة أو إعادة التحميل: عدم عرض السياسة إذا كان المستخدم قد شاهدها مسبقاً
