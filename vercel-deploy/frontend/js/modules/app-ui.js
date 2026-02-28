@@ -2506,8 +2506,8 @@ window.UI = {
     },
 
     /**
-     * عرض رسالة "تم التحديث" عند تسجيل الدخول إذا كان إصدار التطبيق قد تغيّر عن آخر إصدار شواه المستخدم.
-     * المعايير: وجود إصدار حالي، وجود إصدار سابق محفوظ في localStorage، واختلافهما.
+     * عرض رسالة "هناك تحديث جديد" عند تسجيل الدخول عندما يُجرى تحديث على التطبيق (تغيّر إصدار appVersion).
+     * تظهر للمستخدمين الذين كانوا يستخدمون إصداراً سابقاً فقط — عند كل إضافة أو تحديث جديد، غيّر appVersion في app-utils.js.
      */
     _showUpdateMessageIfNeeded() {
         try {
@@ -2523,7 +2523,7 @@ window.UI = {
             // نفس الإصدار دون تغيير — لا نعرض
             if (lastSeen === currentVersion) return;
 
-            const message = (AppState.updateMessage && String(AppState.updateMessage).trim()) || 'تم تحسين التطبيق وإضافة تحديثات جديدة. شكراً لاستخدامكم.';
+            const message = (AppState.updateMessage && String(AppState.updateMessage).trim()) || 'تم إجراء تحديث على التطبيق. قد تتضمن التحديثات إضافات أو تحسينات جديدة. شكراً لاستخدامكم.';
             const safeMessage = (typeof Utils !== 'undefined' && Utils.escapeHTML) ? Utils.escapeHTML(message).replace(/\n/g, '<br>') : message.replace(/\n/g, '<br>');
             let modal = document.getElementById('hse-update-message-modal');
             if (modal) modal.remove();
@@ -2531,16 +2531,16 @@ window.UI = {
             modal.id = 'hse-update-message-modal';
             modal.setAttribute('role', 'dialog');
             modal.setAttribute('aria-modal', 'true');
-            modal.setAttribute('aria-label', 'تم تحديث التطبيق');
+            modal.setAttribute('aria-label', 'هناك تحديث جديد');
             modal.className = 'hse-update-message-modal';
             modal.style.cssText = 'position:fixed;inset:0;z-index:999999;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.5);padding:1rem;';
             modal.innerHTML = `
                 <div class="hse-update-message-card" style="background:var(--bg-primary,#fff);color:var(--text-primary,#111);max-width:420px;width:100%;border-radius:16px;box-shadow:0 25px 50px -12px rgba(0,0,0,0.25);padding:1.5rem;text-align:right;">
                     <div style="display:flex;align-items:center;gap:0.75rem;margin-bottom:1rem;">
                         <span style="width:48px;height:48px;border-radius:50%;background:var(--primary-color,#2563eb);color:#fff;display:flex;align-items:center;justify-content:center;"><i class="fas fa-sync-alt" style="font-size:1.25rem;"></i></span>
-                        <h2 style="margin:0;font-size:1.25rem;font-weight:700;">تم تحديث التطبيق</h2>
+                        <h2 style="margin:0;font-size:1.25rem;font-weight:700;">هناك تحديث جديد</h2>
                     </div>
-                    <p style="margin:0 0 0.5rem;font-size:0.9rem;color:var(--gray-600,#4b5563);">الإصدار الحالي: <strong>${(typeof Utils !== 'undefined' && Utils.escapeHTML) ? Utils.escapeHTML(currentVersion) : currentVersion}</strong></p>
+                    <p style="margin:0 0 0.5rem;font-size:0.9rem;color:var(--gray-600,#4b5563);">تم إجراء تحديث على التطبيق — الإصدار: <strong>${(typeof Utils !== 'undefined' && Utils.escapeHTML) ? Utils.escapeHTML(currentVersion) : currentVersion}</strong></p>
                     <div class="hse-update-message-body" style="margin:1rem 0;font-size:0.95rem;line-height:1.6;">${safeMessage}</div>
                     <button type="button" id="hse-update-message-ok" class="btn-primary" style="width:100%;margin-top:0.5rem;">حسناً</button>
                 </div>`;
