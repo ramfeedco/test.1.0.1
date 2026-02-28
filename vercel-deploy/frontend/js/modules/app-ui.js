@@ -2284,11 +2284,19 @@ window.UI = {
     /** مدة صلاحية "شاهد السياسة" بالأيام — بعدها نعرض السياسة مرة أخرى (كل 10 أيام) */
     _postLoginPolicyValidityDays: 10,
 
+    /** مفتاح localStorage لآخر مشاهدة سياسة — يُربط بمعرّف المستخدم لضمان ظهور السياسة مرة واحدة لكل مستخدم في هذا المتصفح */
+    _policyLastSeenKey() {
+        const user = AppState.currentUser;
+        const id = (user && (user.email || user.id)) ? String(user.email || user.id).trim() : '';
+        return id ? 'hse_policy_last_seen_at_' + id.replace(/\s+/g, '_') : 'hse_policy_last_seen_at';
+    },
+
     /** هل المستخدم الحالي قد شاهد سياسة ما بعد الدخول ضمن المدة المحددة (أول دخول أو أكثر من 10 أيام = نعرض السياسة) */
     _currentUserHasSeenPostLoginPolicy() {
         try {
             const user = AppState.currentUser;
             if (!user) return true;
+            const storageKey = this._policyLastSeenKey();
             const daysMs = (this._postLoginPolicyValidityDays || 10) * 24 * 60 * 60 * 1000;
             const now = Date.now();
             const parseTime = (v) => {
@@ -2298,15 +2306,15 @@ window.UI = {
                 const t = new Date(v).getTime();
                 return isNaN(t) ? 0 : t;
             };
-            // ضمان ظهور السياسة مرة واحدة على الأقل في هذا المتصفح: إذا لم يُسجّل فيها مسبقاً نعرضها
+            // ضمان ظهور السياسة مرة واحدة على الأقل لكل مستخدم في هذا المتصفح
             try {
-                if (typeof localStorage !== 'undefined' && !localStorage.getItem('hse_policy_last_seen_at'))
-                    return false; // أول مرة في هذا المتصفح — نعرض السياسة دائماً
+                if (typeof localStorage !== 'undefined' && !localStorage.getItem(storageKey))
+                    return false; // أول مرة لهذا المستخدم في هذا المتصفح — نعرض السياسة دائماً
             } catch (e) {}
             // مصدران: localStorage + المستخدم من الجلسة/قاعدة البيانات (لحساب تكرار كل 10 أيام)
             let seenAt = 0;
             try {
-                const localSeen = typeof localStorage !== 'undefined' && localStorage.getItem('hse_policy_last_seen_at');
+                const localSeen = typeof localStorage !== 'undefined' && localStorage.getItem(storageKey);
                 if (localSeen) seenAt = Math.max(seenAt, parseTime(localSeen));
             } catch (e) {}
             const v = user.postLoginPolicySeenAt;
@@ -2330,7 +2338,7 @@ window.UI = {
         if (!user) return;
         const seenAt = new Date().toISOString();
         try {
-            if (typeof localStorage !== 'undefined') localStorage.setItem('hse_policy_last_seen_at', seenAt);
+            if (typeof localStorage !== 'undefined') localStorage.setItem(this._policyLastSeenKey(), seenAt);
         } catch (e) {}
         if (AppState.currentUser) AppState.currentUser.postLoginPolicySeenAt = seenAt;
         const users = AppState.appData?.users;
@@ -2425,7 +2433,7 @@ window.UI = {
             overlay.setAttribute('role', 'dialog');
             overlay.setAttribute('aria-modal', 'true');
             overlay.setAttribute('aria-label', rawTitle);
-            overlay.style.cssText = 'position:fixed;inset:0;z-index:999999;display:flex;align-items:center;justify-content:center;';
+            overlay.style.cssText = 'position:fixed;inset:0;z-index:999999;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.45);pointer-events:auto;';
             overlay.innerHTML = `
                 <div class="hse-post-login-overlay-backdrop"></div>
                 <div class="hse-post-login-overlay-card">
@@ -2493,8 +2501,8 @@ window.UI = {
             }
         };
 
-        // تأجيل العرض إلى الـ tick التالي لضمان ظهور السياسة بعد أول دخول
-        setTimeout(function() { showItem(0); }, 0);
+        // عرض السياسة فوراً بعد تسجيل الدخول (بدون تأخير)
+        showItem(0);
     },
 
     /**
