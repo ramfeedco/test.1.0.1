@@ -2593,6 +2593,10 @@ const Permissions = {
 const DEFAULT_COMPANY_NAME = '';
 
 const AppState = {
+    /** إصدار التطبيق الحالي — يُستخدم لعرض رسالة "تم التحديث" عند تسجيل الدخول عند تغيّر الإصدار */
+    appVersion: '1.0.0',
+    /** نص اختياري لرسالة التحديث (مثلاً ملخص التغييرات). إن تُركت فارغة تُستخدم رسالة افتراضية */
+    updateMessage: '',
     debugMode: false,
     currentUser: null,
     currentSection: 'dashboard',

@@ -2466,6 +2466,60 @@ window.UI = {
         setTimeout(function() { showItem(0); }, 0);
     },
 
+    /**
+     * عرض رسالة "تم التحديث" عند تسجيل الدخول إذا كان إصدار التطبيق قد تغيّر عن آخر إصدار شواه المستخدم.
+     * المعايير: وجود إصدار حالي، وجود إصدار سابق محفوظ في localStorage، واختلافهما.
+     */
+    _showUpdateMessageIfNeeded() {
+        try {
+            const currentVersion = (typeof AppState !== 'undefined' && AppState.appVersion) ? String(AppState.appVersion).trim() : '';
+            if (!currentVersion) return;
+            const storageKey = 'hse_last_seen_version';
+            const lastSeen = (typeof localStorage !== 'undefined' && localStorage.getItem(storageKey)) ? String(localStorage.getItem(storageKey)).trim() : '';
+            // للمستخدم الجديد: حفظ الإصدار الحالي دون عرض رسالة (ليُقارن عند التحديث القادم)
+            if (!lastSeen) {
+                try { localStorage.setItem(storageKey, currentVersion); } catch (e) {}
+                return;
+            }
+            if (lastSeen === currentVersion) return;
+
+            const message = (AppState.updateMessage && String(AppState.updateMessage).trim()) || 'تم تحسين التطبيق وإضافة تحديثات جديدة. شكراً لاستخدامكم.';
+            const safeMessage = (typeof Utils !== 'undefined' && Utils.escapeHTML) ? Utils.escapeHTML(message).replace(/\n/g, '<br>') : message.replace(/\n/g, '<br>');
+            let modal = document.getElementById('hse-update-message-modal');
+            if (modal) modal.remove();
+            modal = document.createElement('div');
+            modal.id = 'hse-update-message-modal';
+            modal.setAttribute('role', 'dialog');
+            modal.setAttribute('aria-modal', 'true');
+            modal.setAttribute('aria-label', 'تم تحديث التطبيق');
+            modal.className = 'hse-update-message-modal';
+            modal.style.cssText = 'position:fixed;inset:0;z-index:999999;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.5);padding:1rem;';
+            modal.innerHTML = `
+                <div class="hse-update-message-card" style="background:var(--bg-primary,#fff);color:var(--text-primary,#111);max-width:420px;width:100%;border-radius:16px;box-shadow:0 25px 50px -12px rgba(0,0,0,0.25);padding:1.5rem;text-align:right;">
+                    <div style="display:flex;align-items:center;gap:0.75rem;margin-bottom:1rem;">
+                        <span style="width:48px;height:48px;border-radius:50%;background:var(--primary-color,#2563eb);color:#fff;display:flex;align-items:center;justify-content:center;"><i class="fas fa-sync-alt" style="font-size:1.25rem;"></i></span>
+                        <h2 style="margin:0;font-size:1.25rem;font-weight:700;">تم تحديث التطبيق</h2>
+                    </div>
+                    <p style="margin:0 0 0.5rem;font-size:0.9rem;color:var(--gray-600,#4b5563);">الإصدار الحالي: <strong>${(typeof Utils !== 'undefined' && Utils.escapeHTML) ? Utils.escapeHTML(currentVersion) : currentVersion}</strong></p>
+                    <div class="hse-update-message-body" style="margin:1rem 0;font-size:0.95rem;line-height:1.6;">${safeMessage}</div>
+                    <button type="button" id="hse-update-message-ok" class="btn-primary" style="width:100%;margin-top:0.5rem;">حسناً</button>
+                </div>`;
+            document.body.appendChild(modal);
+
+            const onClose = () => {
+                try {
+                    if (typeof localStorage !== 'undefined') localStorage.setItem(storageKey, currentVersion);
+                } catch (e) {}
+                if (modal && modal.parentNode) modal.remove();
+            };
+            const btn = modal.querySelector('#hse-update-message-ok');
+            if (btn) btn.addEventListener('click', onClose);
+            modal.addEventListener('click', (e) => { if (e.target === modal) onClose(); });
+        } catch (e) {
+            if (AppState.debugMode) Utils.safeWarn('⚠️ خطأ في عرض رسالة التحديث:', e);
+        }
+    },
+
     /** متابعة تهيئة التطبيق الرئيسي (بعد شاشة السياسات أو مباشرة بعد الدخول) */
     _continueMainAppSetup() {
         // تفعيل نظام عدم النشاط (فقط إذا لم تكن إعادة تحميل)
@@ -2533,6 +2587,11 @@ window.UI = {
                 UserAIAssistant.init();
             }, 500);
         }
+
+        // عرض رسالة التحديث عند بداية تسجيل الدخول إذا تغيّر إصدار التطبيق (بعد تهيئة الواجهة)
+        setTimeout(() => {
+            if (typeof this._showUpdateMessageIfNeeded === 'function') this._showUpdateMessageIfNeeded();
+        }, 800);
 
         // تم نقل المزامنة إلى Auth.login لتجنب المزامنات المكررة
         // المزامنة تحدث مرة واحدة فقط بعد تسجيل الدخول في Auth.login
