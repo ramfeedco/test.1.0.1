@@ -1,6 +1,7 @@
 /**
- * Script to convert SVG icons to PNG format
+ * Script to generate PWA/favicon PNG icons from logo image (ICAPP Safety Teams).
  * Run: node convert-icons-to-png.js
+ * Uses icons/icapp-logo.png as source; fallback to HSE text if missing.
  */
 
 const fs = require('fs');
@@ -12,45 +13,50 @@ const iconSizes = [16, 32, 48, 72, 96, 128, 144, 152, 180, 192, 384, 512];
 
 // Directories
 const iconsDir = path.join(__dirname, 'icons');
-const outputDir = iconsDir; // Save PNGs in the same directory
+const outputDir = iconsDir;
+const logoPath = path.join(iconsDir, 'icapp-logo.png');
 
-// Function to create PNG from SVG
-async function convertSvgToPng(size) {
+// Draw fallback HSE text icon (when logo file is missing)
+function drawFallbackHSE(ctx, size) {
+    ctx.fillStyle = '#2563eb';
+    ctx.fillRect(0, 0, size, size);
+    ctx.fillStyle = '#ffffff';
+    ctx.font = `bold ${Math.floor(size * 0.625)}px Arial, sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('HSE', size / 2, size / 2);
+}
+
+// Create PNG from logo image or fallback
+async function convertToPng(size) {
     try {
-        // Create canvas
         const canvas = createCanvas(size, size);
         const ctx = canvas.getContext('2d');
 
-        // Draw background
-        ctx.fillStyle = '#2563eb';
-        ctx.fillRect(0, 0, size, size);
+        if (fs.existsSync(logoPath)) {
+            const img = await loadImage(logoPath);
+            const s = Math.max(img.width, img.height);
+            const dx = (size - size * (img.width / s)) / 2;
+            const dy = (size - size * (img.height / s)) / 2;
+            ctx.drawImage(img, dx, dy, size * (img.width / s), size * (img.height / s));
+        } else {
+            drawFallbackHSE(ctx, size);
+        }
 
-        // Draw text
-        ctx.fillStyle = '#ffffff';
-        ctx.font = `bold ${Math.floor(size * 0.625)}px Arial, sans-serif`;
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText('HSE', size / 2, size / 2);
-
-        // Save as PNG
         const buffer = canvas.toBuffer('image/png');
         const filename = `icon-${size}x${size}.png`;
-        const filepath = path.join(outputDir, filename);
-        fs.writeFileSync(filepath, buffer);
+        fs.writeFileSync(path.join(outputDir, filename), buffer);
         console.log(`✓ Created ${filename}`);
     } catch (error) {
         console.error(`✗ Error creating icon-${size}x${size}.png:`, error.message);
     }
 }
 
-// Main function
 async function main() {
-    console.log('Converting SVG icons to PNG format...\n');
-    
+    console.log('Generating PNG icons from logo...\n');
     for (const size of iconSizes) {
-        await convertSvgToPng(size);
+        await convertToPng(size);
     }
-    
     console.log('\n✅ All PNG icon files created successfully!');
 }
 
