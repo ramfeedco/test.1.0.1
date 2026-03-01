@@ -337,6 +337,19 @@
             if (notificationLoaded) {
                 this.updateLoader(70, 'تم تحميل Notification');
             }
+
+            // إظهار الهيدر مبكراً عند وجود جلسة (بدون انتظار phaseModules/phaseReady)
+            // يقلل تأخر ظهور هيدر لوحة التحكم (شعار الشركة + الاسم)
+            try {
+                const mainApp = document.getElementById('main-app');
+                if (mainApp && mainApp.style.display !== 'none' && typeof window.UI !== 'undefined' && window.UI.updateCompanyLogoHeader) {
+                    window.UI.updateCompanyLogoHeader();
+                    if (window.UI.updateCompanyBranding) window.UI.updateCompanyBranding();
+                    log('✅ تم إظهار الهيدر مبكراً');
+                }
+            } catch (e) {
+                if (AppState?.debugMode) console.warn('⚠️ إظهار الهيدر مبكراً:', e);
+            }
             
             this.endPhase(this.phases.UI);
         },
