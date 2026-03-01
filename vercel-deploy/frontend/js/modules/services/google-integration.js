@@ -2427,7 +2427,7 @@ const GoogleIntegration = {
             }
 
             if (showLoader && typeof Loading !== 'undefined') {
-                Loading.show('جاري مزامنة البيانات مع Google Sheets...', 0);
+                Loading.show('جاري تحميل البيانات من قاعدة البيانات', 0);
             }
 
             // ✅ إصلاح: تقسيم الأوراق إلى أولوية عالية ومنخفضة لتسريع التحميل

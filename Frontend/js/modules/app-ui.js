@@ -7426,7 +7426,7 @@ window.UI = {
             }
 
             if (typeof Notification !== 'undefined') {
-                Notification.info('جاري مزامنة البيانات مع Google Sheets...');
+                Notification.info('جاري تحميل البيانات من قاعدة البيانات');
             }
 
             // مزامنة جميع البيانات (قراءة من Google Sheets)
@@ -7538,7 +7538,7 @@ window.UI = {
         syncBtn.classList.remove('connected', 'disconnected');
         if (isConnected) {
             syncBtn.classList.add('connected');
-            syncBtn.title = 'متصل - مزامنة البيانات مع Google Sheets';
+            syncBtn.title = 'متصل';
         } else {
             syncBtn.classList.add('disconnected');
             syncBtn.title = 'غير متصل - لا يمكن المزامنة';
