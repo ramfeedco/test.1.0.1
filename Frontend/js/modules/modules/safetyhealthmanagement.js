@@ -6135,6 +6135,8 @@ const SafetyHealthManagement = {
             }
 
             const member = memberResponse.data;
+            // توحيد المقارنة: استخدام string لضمان تطابق 100% مع البيانات القادمة من الـ Backend (قد تكون id كنص أو رقم)
+            const mid = String(memberId);
 
             // جلب جميع البيانات المتعلقة بالعضو من جميع المديولات
             const [incidentsResponse, nearMissResponse, ptwResponse, trainingResponse, 
@@ -6159,56 +6161,71 @@ const SafetyHealthManagement = {
                 Utils.safeError('خطأ في جلب المخالفات:', e);
             }
 
-            // معالجة البيانات
-            const incidents = incidentsResponse.status === 'fulfilled' && incidentsResponse.value.success 
-                ? (incidentsResponse.value.data || []).filter(i => 
-                    i.reportedBy === memberId || i.investigatedBy === memberId || i.responsible === memberId || 
-                    i.assignedTo === memberId || (i.assignees && Array.isArray(i.assignees) && i.assignees.includes(memberId))
-                ) : [];
-            
-            const nearMisses = nearMissResponse.status === 'fulfilled' && nearMissResponse.value.success
-                ? (nearMissResponse.value.data || []).filter(nm => 
-                    nm.reportedBy === memberId || nm.investigatedBy === memberId || nm.responsible === memberId ||
-                    nm.assignedTo === memberId
-                ) : [];
-            
-            const ptws = ptwResponse.status === 'fulfilled' && ptwResponse.value.success
-                ? (ptwResponse.value.data || []).filter(p => 
-                    p.requestedBy === memberId || p.approvedBy === memberId || p.supervisedBy === memberId ||
-                    p.assignedTo === memberId || (p.permitHolders && Array.isArray(p.permitHolders) && p.permitHolders.includes(memberId))
-                ) : [];
-            
-            const violations = Array.isArray(violationsData) ? violationsData.filter(v => 
-                v.reportedBy === memberId || v.investigatedBy === memberId || v.assignedTo === memberId ||
-                (v.reporterId && v.reporterId === memberId) || (v.inspectorId && v.inspectorId === memberId)
-            ) : [];
-            
-            const trainings = trainingResponse.status === 'fulfilled' && trainingResponse.value.success
-                ? (trainingResponse.value.data || []).filter(t => {
-                    if (t.participants && Array.isArray(t.participants)) {
-                        return t.participants.some(p => p.id === memberId || p === memberId);
-                    }
-                    if (t.instructor && (t.instructor.id === memberId || t.instructor === memberId)) {
-                        return true;
-                    }
-                    return t.conductedBy === memberId || t.organizedBy === memberId;
-                }) : [];
-            
-            const inspections = inspectionsResponse.status === 'fulfilled' && inspectionsResponse.value.success
-                ? (inspectionsResponse.value.data || []).filter(ins => 
-                    ins.inspector === memberId || ins.responsible === memberId || ins.assignedTo === memberId
-                ) : [];
-            
-            const attendance = attendanceResponse.status === 'fulfilled' && attendanceResponse.value.success
-                ? (attendanceResponse.value.data || []) : [];
-            
-            const leaves = leavesResponse.status === 'fulfilled' && leavesResponse.value.success
-                ? (leavesResponse.value.data || []) : [];
-            
-            const kpis = kpisResponse.status === 'fulfilled' && kpisResponse.value.success
-                ? (kpisResponse.value.data || []) : [];
+            // دالة مساعدة للمقارنة الآمنة مع memberId
+            const eq = (val) => val != null && String(val) === mid;
 
-            // حساب الإحصائيات
+            // معالجة البيانات بفلاتر متطابقة مع الـ Backend (حقول reportedBy, inspector, participants, إلخ)
+            const incidents = incidentsResponse.status === 'fulfilled' && incidentsResponse.value && incidentsResponse.value.success
+                ? (incidentsResponse.value.data || []).filter(i =>
+                    eq(i.reportedBy) || eq(i.investigatedBy) || eq(i.responsible) || eq(i.assignedTo) ||
+                    (i.assignees && Array.isArray(i.assignees) && i.assignees.some(a => eq(a)))
+                ) : [];
+
+            const nearMisses = nearMissResponse.status === 'fulfilled' && nearMissResponse.value && nearMissResponse.value.success
+                ? (nearMissResponse.value.data || []).filter(nm =>
+                    eq(nm.reportedBy) || eq(nm.investigatedBy) || eq(nm.responsible) || eq(nm.assignedTo)
+                ) : [];
+
+            const ptws = ptwResponse.status === 'fulfilled' && ptwResponse.value && ptwResponse.value.success
+                ? (ptwResponse.value.data || []).filter(p =>
+                    eq(p.requestedBy) || eq(p.approvedBy) || eq(p.supervisedBy) || eq(p.responsible) ||
+                    eq(p.assignedTo) || (p.permitHolders && Array.isArray(p.permitHolders) && p.permitHolders.some(h => eq(h)))
+                ) : [];
+
+            const violations = Array.isArray(violationsData) ? violationsData.filter(v =>
+                eq(v.reportedBy) || eq(v.investigatedBy) || eq(v.assignedTo) || eq(v.reporterId) || eq(v.inspectorId)
+            ) : [];
+
+            const trainings = trainingResponse.status === 'fulfilled' && trainingResponse.value && trainingResponse.value.success
+                ? (trainingResponse.value.data || []).filter(t => {
+                    if (eq(t.trainer)) return true;
+                    if (t.participants != null) {
+                        if (Array.isArray(t.participants)) {
+                            if (t.participants.some(p => eq(p) || (p && eq(p.id)))) return true;
+                        } else if (typeof t.participants === 'string') {
+                            try {
+                                const parsed = JSON.parse(t.participants);
+                                if (Array.isArray(parsed) && parsed.some(p => eq(p) || (p && eq(p.id)))) return true;
+                            } catch (_) {}
+                            if (t.participants.indexOf(mid) !== -1) return true;
+                        }
+                    }
+                    return eq(t.instructor) || (t.instructor && eq(t.instructor.id)) || eq(t.conductedBy) || eq(t.organizedBy);
+                }) : [];
+
+            const inspections = inspectionsResponse.status === 'fulfilled' && inspectionsResponse.value && inspectionsResponse.value.success
+                ? (inspectionsResponse.value.data || []).filter(ins =>
+                    eq(ins.inspector) || eq(ins.responsible) || eq(ins.assignedTo)
+                ) : [];
+
+            const attendance = attendanceResponse.status === 'fulfilled' && attendanceResponse.value && attendanceResponse.value.success
+                ? (attendanceResponse.value.data || []) : [];
+
+            const leaves = leavesResponse.status === 'fulfilled' && leavesResponse.value && leavesResponse.value.success
+                ? (leavesResponse.value.data || []) : [];
+
+            let kpis = kpisResponse.status === 'fulfilled' && kpisResponse.value && kpisResponse.value.success
+                ? (kpisResponse.value.data || []) : [];
+            // ترتيب مؤشرات الأداء حسب الفترة (الأحدث أولاً) لاختيار "آخر فترة" بشكل صحيح
+            if (kpis.length > 1) {
+                kpis = [...kpis].sort((a, b) => {
+                    const periodCompare = (b.period || '').localeCompare(a.period || '');
+                    if (periodCompare !== 0) return periodCompare;
+                    return new Date(b.calculatedAt || 0) - new Date(a.calculatedAt || 0);
+                });
+            }
+
+            // حساب الإحصائيات مع قيم افتراضية آمنة (منع undefined في العرض)
             const stats = {
                 totalIncidents: incidents.length,
                 totalNearMisses: nearMisses.length,
@@ -6217,17 +6234,21 @@ const SafetyHealthManagement = {
                 totalTrainings: trainings.length,
                 totalInspections: inspections.length,
                 totalAttendanceDays: attendance.length,
-                presentDays: attendance.filter(a => a.status === 'حاضر' || a.status === 'present').length,
-                absentDays: attendance.filter(a => a.status === 'غائب' || a.status === 'absent').length,
+                presentDays: attendance.filter(a => a && (a.status === 'حاضر' || a.status === 'present')).length,
+                absentDays: attendance.filter(a => a && (a.status === 'غائب' || a.status === 'absent')).length,
                 totalLeaves: leaves.length,
-                activeLeaves: leaves.filter(l => l.status === 'موافق' || l.status === 'approved').length,
+                activeLeaves: leaves.filter(l => l && (l.status === 'موافق' || l.status === 'approved')).length,
                 latestKPI: kpis.length > 0 ? kpis[0] : null
             };
 
-            // حساب معدل الحضور
-            const attendanceRate = stats.totalAttendanceDays > 0 
-                ? ((stats.presentDays / stats.totalAttendanceDays) * 100).toFixed(1) 
-                : 0;
+            // حساب معدل الحضور (قيمة رقمية آمنة للعرض)
+            const attendanceRate = stats.totalAttendanceDays > 0
+                ? ((stats.presentDays / stats.totalAttendanceDays) * 100).toFixed(1)
+                : '0';
+
+            // قيم آمنة للعرض في الكروت (منع undefined/NaN)
+            const safe = (n, def = 0) => (n != null && Number.isFinite(Number(n)) ? Number(n) : def);
+            const k = stats.latestKPI;
 
             // عرض النتائج
             container.innerHTML = `
@@ -6246,14 +6267,14 @@ const SafetyHealthManagement = {
                         </div>
                     </div>
 
-                    <!-- إحصائيات سريعة -->
+                    <!-- إحصائيات سريعة (قيم من الفلاتر المطابقة للـ Backend) -->
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                         <div class="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
                             <div class="flex items-center justify-between mb-2">
                                 <h4 class="font-semibold text-gray-700">الحوادث</h4>
                                 <i class="fas fa-exclamation-triangle text-red-500 text-xl"></i>
                             </div>
-                            <p class="text-3xl font-bold text-red-600">${stats.totalIncidents}</p>
+                            <p class="text-3xl font-bold text-red-600">${safe(stats.totalIncidents)}</p>
                             <p class="text-sm text-gray-500 mt-1">إجمالي الحوادث المعالجة</p>
                         </div>
 
@@ -6262,7 +6283,7 @@ const SafetyHealthManagement = {
                                 <h4 class="font-semibold text-gray-700">Near Miss</h4>
                                 <i class="fas fa-exclamation-circle text-orange-500 text-xl"></i>
                             </div>
-                            <p class="text-3xl font-bold text-orange-600">${stats.totalNearMisses}</p>
+                            <p class="text-3xl font-bold text-orange-600">${safe(stats.totalNearMisses)}</p>
                             <p class="text-sm text-gray-500 mt-1">إجمالي الحوادث المحتملة</p>
                         </div>
 
@@ -6271,7 +6292,7 @@ const SafetyHealthManagement = {
                                 <h4 class="font-semibold text-gray-700">التفتيشات</h4>
                                 <i class="fas fa-search text-blue-500 text-xl"></i>
                             </div>
-                            <p class="text-3xl font-bold text-blue-600">${stats.totalInspections}</p>
+                            <p class="text-3xl font-bold text-blue-600">${safe(stats.totalInspections)}</p>
                             <p class="text-sm text-gray-500 mt-1">إجمالي الجولات التفتيشية</p>
                         </div>
 
@@ -6280,7 +6301,7 @@ const SafetyHealthManagement = {
                                 <h4 class="font-semibold text-gray-700">التدريبات</h4>
                                 <i class="fas fa-chalkboard-teacher text-green-500 text-xl"></i>
                             </div>
-                            <p class="text-3xl font-bold text-green-600">${stats.totalTrainings}</p>
+                            <p class="text-3xl font-bold text-green-600">${safe(stats.totalTrainings)}</p>
                             <p class="text-sm text-gray-500 mt-1">إجمالي التدريبات</p>
                         </div>
                     </div>
@@ -6295,11 +6316,11 @@ const SafetyHealthManagement = {
                             <div class="space-y-3">
                                 <div class="flex justify-between items-center">
                                     <span class="text-gray-600">أيام الحضور:</span>
-                                    <span class="font-bold text-green-600">${stats.presentDays}</span>
+                                    <span class="font-bold text-green-600">${safe(stats.presentDays)}</span>
                                 </div>
                                 <div class="flex justify-between items-center">
                                     <span class="text-gray-600">أيام الغياب:</span>
-                                    <span class="font-bold text-red-600">${stats.absentDays}</span>
+                                    <span class="font-bold text-red-600">${safe(stats.absentDays)}</span>
                                 </div>
                                 <div class="flex justify-between items-center">
                                     <span class="text-gray-600">معدل الحضور:</span>
@@ -6307,7 +6328,7 @@ const SafetyHealthManagement = {
                                 </div>
                                 <div class="flex justify-between items-center">
                                     <span class="text-gray-600">الإجازات:</span>
-                                    <span class="font-bold text-purple-600">${stats.totalLeaves} (${stats.activeLeaves} نشطة)</span>
+                                    <span class="font-bold text-purple-600">${safe(stats.totalLeaves)} (${safe(stats.activeLeaves)} نشطة)</span>
                                 </div>
                             </div>
                         </div>
@@ -6320,42 +6341,42 @@ const SafetyHealthManagement = {
                             <div class="space-y-3">
                                 <div class="flex justify-between items-center">
                                     <span class="text-gray-600">PTW:</span>
-                                    <span class="font-bold text-indigo-600">${stats.totalPTWs}</span>
+                                    <span class="font-bold text-indigo-600">${safe(stats.totalPTWs)}</span>
                                 </div>
                                 <div class="flex justify-between items-center">
                                     <span class="text-gray-600">المخالفات:</span>
-                                    <span class="font-bold text-yellow-600">${stats.totalViolations}</span>
+                                    <span class="font-bold text-yellow-600">${safe(stats.totalViolations)}</span>
                                 </div>
                             </div>
                         </div>
                     </div>
 
                     ${stats.latestKPI ? `
-                    <!-- مؤشرات الأداء الأخيرة -->
+                    <!-- مؤشرات الأداء (آخر فترة - من مصدر getSafetyTeamKPIs المرتب حسب الفترة) -->
                     <div class="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
                         <h4 class="font-semibold text-gray-700 mb-4 flex items-center">
                             <i class="fas fa-chart-line text-blue-500 ml-2"></i>
                             مؤشرات الأداء (آخر فترة)
                         </h4>
                         <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                            <div>
+                            <div class="shm-kpi-card min-h-[4.5rem] flex flex-col justify-end">
                                 <p class="text-sm text-gray-500">الجولات التفتيشية</p>
-                                <p class="text-2xl font-bold text-blue-600">${stats.latestKPI.inspectionsCount || 0}</p>
-                                <p class="text-xs text-gray-400">الهدف: ${stats.latestKPI.targetInspections || 20}</p>
+                                <p class="text-2xl font-bold text-blue-600">${safe(k && k.inspectionsCount)}</p>
+                                <p class="text-xs text-gray-400 mt-0.5">الهدف: ${safe(k && k.targetInspections, 20)}</p>
                             </div>
-                            <div>
+                            <div class="shm-kpi-card min-h-[4.5rem] flex flex-col justify-end">
                                 <p class="text-sm text-gray-500">الإجراءات المغلقة</p>
-                                <p class="text-2xl font-bold text-green-600">${stats.latestKPI.closedActionsCount || 0}</p>
+                                <p class="text-2xl font-bold text-green-600">${safe(k && k.closedActionsCount)}</p>
                             </div>
-                            <div>
+                            <div class="shm-kpi-card min-h-[4.5rem] flex flex-col justify-end">
                                 <p class="text-sm text-gray-500">الملاحظات</p>
-                                <p class="text-2xl font-bold text-purple-600">${stats.latestKPI.observationsCount || 0}</p>
-                                <p class="text-xs text-gray-400">الهدف: ${stats.latestKPI.targetObservations || 15}</p>
+                                <p class="text-2xl font-bold text-purple-600">${safe(k && k.observationsCount)}</p>
+                                <p class="text-xs text-gray-400 mt-0.5">الهدف: ${safe(k && k.targetObservations, 15)}</p>
                             </div>
-                            <div>
+                            <div class="shm-kpi-card min-h-[4.5rem] flex flex-col justify-end">
                                 <p class="text-sm text-gray-500">التدريبات</p>
-                                <p class="text-2xl font-bold text-orange-600">${stats.latestKPI.trainingsCount || 0}</p>
-                                <p class="text-xs text-gray-400">الهدف: ${stats.latestKPI.targetTrainings || 2}</p>
+                                <p class="text-2xl font-bold text-orange-600">${safe(k && k.trainingsCount)}</p>
+                                <p class="text-xs text-gray-400 mt-0.5">الهدف: ${safe(k && k.targetTrainings, 2)}</p>
                             </div>
                         </div>
                     </div>
@@ -6369,7 +6390,7 @@ const SafetyHealthManagement = {
                         </h4>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
-                                <h5 class="font-medium text-gray-600 mb-2">الحوادث (${stats.totalIncidents})</h5>
+                                <h5 class="font-medium text-gray-600 mb-2">الحوادث (${safe(stats.totalIncidents)})</h5>
                                 <div class="space-y-1 max-h-40 overflow-y-auto">
                                     ${incidents.slice(0, 5).map(inc => `
                                         <div class="text-sm text-gray-500 p-2 bg-gray-50 rounded">
@@ -6380,7 +6401,7 @@ const SafetyHealthManagement = {
                                 </div>
                             </div>
                             <div>
-                                <h5 class="font-medium text-gray-600 mb-2">التفتيشات (${stats.totalInspections})</h5>
+                                <h5 class="font-medium text-gray-600 mb-2">التفتيشات (${safe(stats.totalInspections)})</h5>
                                 <div class="space-y-1 max-h-40 overflow-y-auto">
                                     ${inspections.slice(0, 5).map(ins => `
                                         <div class="text-sm text-gray-500 p-2 bg-gray-50 rounded">

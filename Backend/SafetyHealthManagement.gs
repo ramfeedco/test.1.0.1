@@ -171,8 +171,9 @@ function getSafetyTeamMember(memberId) {
         }
         
         var member = null;
+        var memberIdStr = String(memberId);
         for (var i = 0; i < data.length; i++) {
-            if (data[i].id === memberId) {
+            if (data[i] && String(data[i].id) === memberIdStr) {
                 member = data[i];
                 break;
             }
@@ -741,7 +742,8 @@ function getSafetyTeamKPIs(memberId, period = null) {
         }
         
         let filteredData = data.filter(function(kpi) {
-            return kpi && kpi.memberId === memberId;
+            if (!kpi) return false;
+            return String(kpi.memberId) === String(memberId);
         });
         
         if (period) {
@@ -1245,6 +1247,142 @@ function getSafetyTeamLeaves(memberId, startDate = null, endDate = null) {
     } catch (error) {
         Logger.log('Error in getSafetyTeamLeaves: ' + error.toString());
         return { success: false, message: 'حدث خطأ أثناء الحصول على سجل الإجازات: ' + error.toString(), data: [] };
+    }
+}
+
+/**
+ * حذف سجل حضور
+ */
+function deleteSafetyTeamAttendance(attendanceId) {
+    try {
+        if (!attendanceId) {
+            return { success: false, message: 'معرف سجل الحضور غير محدد' };
+        }
+        const sheetName = 'SafetyTeamAttendance';
+        const spreadsheetId = getSpreadsheetId();
+        const data = readFromSheet(sheetName, spreadsheetId);
+        if (!data || data.length === 0) {
+            return { success: false, message: 'سجل الحضور غير موجود' };
+        }
+        const filteredData = data.filter(function(record) {
+            return record && record.id !== attendanceId;
+        });
+        if (filteredData.length === data.length) {
+            return { success: false, message: 'سجل الحضور غير موجود' };
+        }
+        return saveToSheet(sheetName, filteredData, spreadsheetId);
+    } catch (error) {
+        Logger.log('Error in deleteSafetyTeamAttendance: ' + error.toString());
+        return { success: false, message: 'حدث خطأ أثناء حذف سجل الحضور: ' + error.toString() };
+    }
+}
+
+/**
+ * تحديث سجل حضور
+ */
+function updateSafetyTeamAttendance(attendanceId, updateData) {
+    try {
+        if (!attendanceId || !updateData) {
+            return { success: false, message: 'معرف سجل الحضور أو بيانات التحديث غير محددة' };
+        }
+        const sheetName = 'SafetyTeamAttendance';
+        const spreadsheetId = getSpreadsheetId();
+        const data = readFromSheet(sheetName, spreadsheetId);
+        var recordIndex = -1;
+        for (var i = 0; i < data.length; i++) {
+            if (data[i] && data[i].id === attendanceId) {
+                recordIndex = i;
+                break;
+            }
+        }
+        if (recordIndex === -1) {
+            return { success: false, message: 'سجل الحضور غير موجود' };
+        }
+        updateData.updatedAt = new Date();
+        for (var key in updateData) {
+            if (updateData.hasOwnProperty(key)) {
+                data[recordIndex][key] = updateData[key];
+            }
+        }
+        if (updateData.checkIn && updateData.checkOut) {
+            try {
+                var checkIn = new Date(updateData.checkIn);
+                var checkOut = new Date(updateData.checkOut);
+                data[recordIndex].workDuration = Math.round(((checkOut - checkIn) / (1000 * 60 * 60)) * 100) / 100;
+            } catch (e) {}
+        }
+        return saveToSheet(sheetName, data, spreadsheetId);
+    } catch (error) {
+        Logger.log('Error in updateSafetyTeamAttendance: ' + error.toString());
+        return { success: false, message: 'حدث خطأ أثناء تحديث سجل الحضور: ' + error.toString() };
+    }
+}
+
+/**
+ * حذف سجل إجازة
+ */
+function deleteSafetyTeamLeave(leaveId) {
+    try {
+        if (!leaveId) {
+            return { success: false, message: 'معرف سجل الإجازة غير محدد' };
+        }
+        const sheetName = 'SafetyTeamLeaves';
+        const spreadsheetId = getSpreadsheetId();
+        const data = readFromSheet(sheetName, spreadsheetId);
+        if (!data || data.length === 0) {
+            return { success: false, message: 'سجل الإجازة غير موجود' };
+        }
+        const filteredData = data.filter(function(record) {
+            return record && record.id !== leaveId;
+        });
+        if (filteredData.length === data.length) {
+            return { success: false, message: 'سجل الإجازة غير موجود' };
+        }
+        return saveToSheet(sheetName, filteredData, spreadsheetId);
+    } catch (error) {
+        Logger.log('Error in deleteSafetyTeamLeave: ' + error.toString());
+        return { success: false, message: 'حدث خطأ أثناء حذف سجل الإجازة: ' + error.toString() };
+    }
+}
+
+/**
+ * تحديث سجل إجازة
+ */
+function updateSafetyTeamLeave(leaveId, updateData) {
+    try {
+        if (!leaveId || !updateData) {
+            return { success: false, message: 'معرف سجل الإجازة أو بيانات التحديث غير محددة' };
+        }
+        const sheetName = 'SafetyTeamLeaves';
+        const spreadsheetId = getSpreadsheetId();
+        const data = readFromSheet(sheetName, spreadsheetId);
+        var recordIndex = -1;
+        for (var i = 0; i < data.length; i++) {
+            if (data[i] && data[i].id === leaveId) {
+                recordIndex = i;
+                break;
+            }
+        }
+        if (recordIndex === -1) {
+            return { success: false, message: 'سجل الإجازة غير موجود' };
+        }
+        updateData.updatedAt = new Date();
+        for (var key in updateData) {
+            if (updateData.hasOwnProperty(key)) {
+                data[recordIndex][key] = updateData[key];
+            }
+        }
+        if (updateData.startDate && updateData.endDate) {
+            try {
+                var start = new Date(updateData.startDate);
+                var end = new Date(updateData.endDate);
+                data[recordIndex].daysCount = Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1;
+            } catch (e) {}
+        }
+        return saveToSheet(sheetName, data, spreadsheetId);
+    } catch (error) {
+        Logger.log('Error in updateSafetyTeamLeave: ' + error.toString());
+        return { success: false, message: 'حدث خطأ أثناء تحديث سجل الإجازة: ' + error.toString() };
     }
 }
 

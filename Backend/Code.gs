@@ -1692,6 +1692,18 @@ function doPost(e) {
                 case 'getSafetyTeamLeaves':
                     result = getSafetyTeamLeaves(payload.memberId, payload.startDate, payload.endDate);
                     break;
+                case 'deleteSafetyTeamAttendance':
+                    result = deleteSafetyTeamAttendance(payload.attendanceId || payload.id);
+                    break;
+                case 'updateSafetyTeamAttendance':
+                    result = updateSafetyTeamAttendance(payload.attendanceId || payload.id, payload.updateData || payload);
+                    break;
+                case 'deleteSafetyTeamLeave':
+                    result = deleteSafetyTeamLeave(payload.leaveId || payload.id);
+                    break;
+                case 'updateSafetyTeamLeave':
+                    result = updateSafetyTeamLeave(payload.leaveId || payload.id, payload.updateData || payload);
+                    break;
                 case 'generateAttendanceReport':
                     result = generateAttendanceReport(payload.memberId, payload.period, payload.year, payload.month);
                     break;
