@@ -1326,7 +1326,7 @@ const Settings = {
                                             } catch (reloadError) {
                                                 Utils.safeWarn('⚠️ فشل إعادة تحميل إعدادات الشركة:', reloadError);
                                             }
-                                        }, 500);
+                                        }, 100);
                                     }
                                 } else {
                                     const errorMsg = result?.message || 'فشل حفظ الشعار في قاعدة البيانات';
@@ -1580,6 +1580,17 @@ const Settings = {
                     if (typeof UI !== 'undefined' && typeof UI.updateCompanyBranding === 'function') {
                         UI.updateCompanyBranding();
                     }
+                    // إعادة تحميل إعدادات الشركة من المصدر بعد الحفظ لضمان تحميل اسم الشركة (نفس زمن تحميل الشعار)
+                    if (typeof DataManager !== 'undefined' && DataManager.loadCompanySettings) {
+                        setTimeout(async () => {
+                            try {
+                                await DataManager.loadCompanySettings(true);
+                                Utils.safeLog('✅ تم تحميل إعدادات الشركة بعد الحفظ');
+                            } catch (reloadError) {
+                                Utils.safeWarn('⚠️ فشل إعادة تحميل إعدادات الشركة:', reloadError);
+                            }
+                        }, 100);
+                    }
                     Notification.success('تم تحديث بيانات الشركة بنجاح');
                     Settings.load();
                 });
@@ -1805,6 +1816,17 @@ const Settings = {
                     
                     if (typeof UI !== 'undefined' && typeof UI.updateCompanyBranding === 'function') {
                         UI.updateCompanyBranding();
+                    }
+                    // إعادة تحميل إعدادات الشركة من المصدر بعد الاستعادة (نفس زمن تحميل الشعار)
+                    if (typeof DataManager !== 'undefined' && DataManager.loadCompanySettings) {
+                        setTimeout(async () => {
+                            try {
+                                await DataManager.loadCompanySettings(true);
+                                Utils.safeLog('✅ تم تحميل إعدادات الشركة بعد الاستعادة');
+                            } catch (reloadError) {
+                                Utils.safeWarn('⚠️ فشل إعادة تحميل إعدادات الشركة:', reloadError);
+                            }
+                        }, 100);
                     }
                     Notification.success('تمت استعادة بيانات الشركة الافتراضية');
                     Settings.load();
