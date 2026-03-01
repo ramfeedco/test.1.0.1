@@ -6558,13 +6558,22 @@ window.UI = {
             Utils.safeLog('🔔 تم عرض dropdown الإشعارات:', dropdownId);
 
             if (notifications.length === 0) {
-                if (list) list.style.display = 'none';
+                // إظهار "لا يوجد إشعارات" كالهيدر (نفس السلوك لجميع الأزرار: sidebar، mobile، header)
+                if (list) {
+                    list.style.setProperty('display', 'none', 'important');
+                    list.innerHTML = '';
+                }
                 if (empty) {
-                    empty.style.display = 'flex';
+                    empty.style.setProperty('display', 'flex', 'important');
+                    empty.style.setProperty('visibility', 'visible', 'important');
+                    const msgEl = empty.querySelector('p');
+                    if (msgEl) msgEl.textContent = 'لا يوجد إشعارات';
                 }
                 Utils.safeLog('ℹ️ لا توجد إشعارات غير مقروءة');
             } else {
-                if (empty) empty.style.display = 'none';
+                if (empty) {
+                    empty.style.setProperty('display', 'none', 'important');
+                }
                 if (list) {
                     try {
                         list.style.display = 'block';
