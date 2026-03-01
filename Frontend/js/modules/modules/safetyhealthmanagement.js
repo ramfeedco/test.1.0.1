@@ -190,6 +190,9 @@ const SafetyHealthManagement = {
                         
                         tabContent.innerHTML = teamContent;
                         
+                        // ربط زر إضافة عضو جديد (المحتوى أصبح في DOM الآن)
+                        this.attachTeamAddMemberButton();
+                        
                         // تحميل البيانات بعد عرض الواجهة
                         this.loadTeamMembers().catch(() => {});
                     } catch (error) {
@@ -832,6 +835,7 @@ const SafetyHealthManagement = {
                 contentContainer.innerHTML = await this.renderTeamView();
                     // استخدام requestAnimationFrame لضمان تحميل DOM أولاً
                     requestAnimationFrame(() => {
+                this.attachTeamAddMemberButton();
                 this.loadTeamMembers();
                     });
                 break;
@@ -853,6 +857,7 @@ const SafetyHealthManagement = {
             case 'job-descriptions':
                 contentContainer.innerHTML = await this.renderJobDescriptionsView();
                     requestAnimationFrame(() => {
+                this.attachJobDescriptionAddButton();
                 this.loadJobDescriptions();
                     });
                 break;
@@ -910,7 +915,7 @@ const SafetyHealthManagement = {
                 <div class="card-header">
                     <div class="flex items-center justify-between flex-wrap gap-4">
                         <h2 class="card-title"><i class="fas fa-users ml-2"></i>إدارة فريق السلامة</h2>
-                        <button id="add-team-member-btn" class="btn-primary">
+                        <button id="add-team-member-btn" class="btn-primary" type="button">
                             <i class="fas fa-plus ml-2"></i>
                             إضافة عضو جديد
                         </button>
@@ -1165,16 +1170,31 @@ const SafetyHealthManagement = {
         `).join('');
     },
 
+    /** ربط زر "إضافة عضو جديد" في تبويب فريق السلامة (يُستدعى بعد عرض المحتوى في DOM) */
+    attachTeamAddMemberButton() {
+        const addBtn = document.getElementById('add-team-member-btn');
+        if (addBtn) {
+            const newBtn = addBtn.cloneNode(true);
+            addBtn.parentNode.replaceChild(newBtn, addBtn);
+            newBtn.addEventListener('click', () => this.showMemberForm());
+        }
+    },
+
+    /** ربط زر "إضافة وصف وظيفي" في تبويب الوصف الوظيفي (يُستدعى بعد عرض المحتوى في DOM) */
+    attachJobDescriptionAddButton() {
+        const addBtn = document.getElementById('add-job-description-btn');
+        if (addBtn) {
+            const newBtn = addBtn.cloneNode(true);
+            addBtn.parentNode.replaceChild(newBtn, addBtn);
+            newBtn.addEventListener('click', () => this.showJobDescriptionForm());
+        }
+    },
+
     setupEventListeners() {
         // استخدام requestAnimationFrame للسرعة بدلاً من setTimeout
         requestAnimationFrame(() => {
-            const addBtn = document.getElementById('add-team-member-btn');
-            if (addBtn) {
-                // إزالة المستمع السابق إن وجد لتجنب التكرار
-                const newBtn = addBtn.cloneNode(true);
-                addBtn.parentNode.replaceChild(newBtn, addBtn);
-                newBtn.addEventListener('click', () => this.showMemberForm());
-            }
+            // زر إضافة عضو يُربط في attachTeamAddMemberButton عند عرض تبويب فريق السلامة
+            this.attachTeamAddMemberButton();
             
             // Export Excel button
             const exportExcelBtn = document.getElementById('shm-export-excel-btn');
@@ -2011,7 +2031,7 @@ const SafetyHealthManagement = {
                 <div class="card-header">
                     <div class="flex items-center justify-between">
                         <h2 class="card-title"><i class="fas fa-file-alt ml-2"></i>الوصف الوظيفي</h2>
-                        <button id="add-job-description-btn" class="btn-primary">
+                        <button id="add-job-description-btn" class="btn-primary" type="button">
                             <i class="fas fa-plus ml-2"></i>
                             إضافة وصف وظيفي
                         </button>
@@ -2103,15 +2123,7 @@ const SafetyHealthManagement = {
                     </div>
                 `).join('');
 
-                // Setup add button فوراً باستخدام requestAnimationFrame
-                requestAnimationFrame(() => {
-                    const addBtn = document.getElementById('add-job-description-btn');
-                    if (addBtn) {
-                        const newBtn = addBtn.cloneNode(true);
-                        addBtn.parentNode.replaceChild(newBtn, addBtn);
-                        newBtn.addEventListener('click', () => this.showJobDescriptionForm());
-                    }
-                });
+                // زر الإضافة مُربوط مسبقاً في switchTab عبر attachJobDescriptionAddButton
             }
         } catch (error) {
             // تجاهل أخطاء Chrome Extensions تلقائياً
@@ -2233,10 +2245,14 @@ const SafetyHealthManagement = {
         document.body.appendChild(modal);
 
         // Load team members for dropdown if needed
-        if (!data && memberId) {
-            document.getElementById('jd-member-id').value = memberId;
-        } else if (!data) {
-            await this.loadTeamMembersForDropdown(modal.querySelector('#jd-member-id'));
+        const jdMemberSelect = modal.querySelector('#jd-member-id');
+        if (!data && memberId && jdMemberSelect) {
+            jdMemberSelect.value = memberId;
+        } else if (!data && jdMemberSelect) {
+            await this.loadTeamMembersForDropdown(jdMemberSelect);
+            if (jdMemberSelect.options.length <= 1 && typeof Notification !== 'undefined' && Notification.info) {
+                Notification.info('لا يوجد أعضاء حالياً. أضف أعضاء من تبويب فريق السلامة أولاً.');
+            }
         }
 
         const saveBtn = modal.querySelector('#save-jd-btn');
