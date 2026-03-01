@@ -115,10 +115,8 @@ const EnhancedLoader = {
      */
     hide() {
         if (this.elements.overlay) {
-            // انتظر قليلاً لإظهار النتيجة النهائية
-            setTimeout(() => {
-                this.elements.overlay.style.display = 'none';
-            }, 500);
+            // إخفاء فوري لتقليل تأخير ظهور الواجهة (كان 500ms)
+            this.elements.overlay.style.display = 'none';
         }
     },
 

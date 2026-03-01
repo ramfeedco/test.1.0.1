@@ -146,6 +146,11 @@ window.UI = {
         // لا حاجة لإعادة تهيئة الأحداث هنا لتجنب التعارض
         // إذا كان login-init-fixed.js محملاً، سيعيد تهيئة الأحداث تلقائياً
         if (AppState.debugMode) Utils.safeLog('✅ تم عرض شاشة تسجيل الدخول - تم مسح الحقول وإعادة تعيين الزر');
+
+        // إشعار التحديث: عند عرض شاشة الدخول، التحقق من وجود إصدار جديد لإظهار رسالة للمستخدمين العائدين
+        setTimeout(() => {
+            if (typeof this._showUpdateMessageIfNeeded === 'function') this._showUpdateMessageIfNeeded();
+        }, 500);
     },
 
     renderSummary() {
@@ -2523,7 +2528,7 @@ window.UI = {
             // نفس الإصدار دون تغيير — لا نعرض
             if (lastSeen === currentVersion) return;
 
-            const message = (AppState.updateMessage && String(AppState.updateMessage).trim()) || 'تم إجراء تحديث على التطبيق. قد تتضمن التحديثات إضافات أو تحسينات جديدة. شكراً لاستخدامكم.';
+            const message = (AppState.updateMessage && String(AppState.updateMessage).trim()) || 'تم إجراء تحديث على التطبيق. قد تتضمن التحديثات إضافات أو تحسينات جديدة. يرجى تحديث الصفحة للحصول على أحدث نسخة.';
             const safeMessage = (typeof Utils !== 'undefined' && Utils.escapeHTML) ? Utils.escapeHTML(message).replace(/\n/g, '<br>') : message.replace(/\n/g, '<br>');
             let modal = document.getElementById('hse-update-message-modal');
             if (modal) modal.remove();
@@ -2542,19 +2547,31 @@ window.UI = {
                     </div>
                     <p style="margin:0 0 0.5rem;font-size:0.9rem;color:var(--gray-600,#4b5563);">تم إجراء تحديث على التطبيق — الإصدار: <strong>${(typeof Utils !== 'undefined' && Utils.escapeHTML) ? Utils.escapeHTML(currentVersion) : currentVersion}</strong></p>
                     <div class="hse-update-message-body" style="margin:1rem 0;font-size:0.95rem;line-height:1.6;">${safeMessage}</div>
-                    <button type="button" id="hse-update-message-ok" class="btn-primary" style="width:100%;margin-top:0.5rem;">حسناً</button>
+                    <div style="display:flex;gap:0.5rem;margin-top:1rem;flex-direction:row-reverse;">
+                        <button type="button" id="hse-update-message-reload" class="btn-primary" style="flex:1;">تحديث الصفحة الآن</button>
+                        <button type="button" id="hse-update-message-later" class="btn-secondary" style="flex:1;">لاحقاً</button>
+                    </div>
                 </div>`;
             document.body.appendChild(modal);
 
-            const onClose = () => {
-                try {
-                    if (typeof localStorage !== 'undefined') localStorage.setItem(storageKey, currentVersion);
-                } catch (e) {}
+            if (typeof Notification !== 'undefined' && Notification.info) {
+                Notification.info('هناك تحديث جديد متاح للتطبيق — يرجى تحديث الصفحة للحصول على أحدث النسخة.', { duration: 6000 });
+            }
+
+            const onReload = () => {
+                try { if (typeof localStorage !== 'undefined') localStorage.setItem(storageKey, currentVersion); } catch (e) {}
+                if (modal && modal.parentNode) modal.remove();
+                window.location.reload();
+            };
+            const onLater = () => {
+                try { if (typeof localStorage !== 'undefined') localStorage.setItem(storageKey, currentVersion); } catch (e) {}
                 if (modal && modal.parentNode) modal.remove();
             };
-            const btn = modal.querySelector('#hse-update-message-ok');
-            if (btn) btn.addEventListener('click', onClose);
-            modal.addEventListener('click', (e) => { if (e.target === modal) onClose(); });
+            const btnReload = modal.querySelector('#hse-update-message-reload');
+            const btnLater = modal.querySelector('#hse-update-message-later');
+            if (btnReload) btnReload.addEventListener('click', onReload);
+            if (btnLater) btnLater.addEventListener('click', onLater);
+            modal.addEventListener('click', (e) => { if (e.target === modal) onLater(); });
         } catch (e) {
             if (AppState.debugMode) Utils.safeWarn('⚠️ خطأ في عرض رسالة التحديث:', e);
         }

@@ -97,8 +97,7 @@
                 const totalSheets = stylesheets.length;
                 
                 if (totalSheets === 0) {
-                    // إذا لم تكن هناك ملفات CSS، انتظر قليلاً ثم أكمل
-                    setTimeout(resolve, 100);
+                    resolve();
                     return;
                 }
                 
@@ -125,11 +124,7 @@
                     }
                 };
                 
-                // استخدام requestAnimationFrame لتأخير التحقق حتى يتم تحميل CSS
-                requestAnimationFrame(() => {
-                    // انتظار إضافي قصير لضمان تحميل CSS
-                    setTimeout(checkStylesheets, 50);
-                });
+                requestAnimationFrame(() => setTimeout(checkStylesheets, 10));
             });
         },
 
@@ -363,8 +358,7 @@
             );
             
             if (authScript || dashboardScript) {
-                // الملفات موجودة في DOM - ننتظر قليلاً للتأكد من بدء التحميل
-                await new Promise(resolve => setTimeout(resolve, 100));
+                await new Promise(resolve => setTimeout(resolve, 30));
             }
             
             // تحميل متوازي لـ Auth و Dashboard (تحسين الأداء - تقليل وقت الانتظار)
@@ -409,8 +403,7 @@
             );
             
             if (modulesLoaderScript) {
-                // ننتظر قليلاً للتأكد من بدء تحميل modules-loader.js
-                await new Promise(resolve => setTimeout(resolve, 100));
+                await new Promise(resolve => setTimeout(resolve, 30));
             }
             
             // تحميل متوازي للموديولات الرئيسية (تحسين الأداء - تقليل وقت الانتظار)
