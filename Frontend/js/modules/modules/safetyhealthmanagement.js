@@ -878,6 +878,23 @@ const SafetyHealthManagement = {
     },
 
     // ===== Team Management =====
+    getTeamListSkeletonHTML() {
+        if (!document.getElementById('shm-skeleton-style')) {
+            const style = document.createElement('style');
+            style.id = 'shm-skeleton-style';
+            style.textContent = '@keyframes shm-shimmer{0%,100%{opacity:0.5}50%{opacity:1}}';
+            document.head.appendChild(style);
+        }
+        const items = Array(8).fill(0).map(() => `
+            <div class="rounded-xl border border-gray-100 bg-gray-50 p-4 shadow-sm" style="min-height: 140px;">
+                <div class="h-5 bg-gray-200 rounded mb-3 w-3/4" style="animation: shm-shimmer 1.5s ease-in-out infinite;"></div>
+                <div class="h-4 bg-gray-100 rounded mb-2 w-1/2" style="animation: shm-shimmer 1.5s ease-in-out infinite 0.15s;"></div>
+                <div class="h-4 bg-gray-100 rounded w-2/3" style="animation: shm-shimmer 1.5s ease-in-out infinite 0.3s;"></div>
+            </div>
+        `).join('');
+        return items;
+    },
+
     renderTeamView() {
         return `
             <div class="content-card">
@@ -916,9 +933,7 @@ const SafetyHealthManagement = {
                         </div>
                     </div>
                     <div id="team-members-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                        <div class="empty-state">
-                            <p class="text-gray-500">جاري التحميل...</p>
-                        </div>
+                        ${this.getTeamListSkeletonHTML()}
                     </div>
                 </div>
             </div>
@@ -950,9 +965,9 @@ const SafetyHealthManagement = {
             return;
         }
 
-        // إن لم يكن هناك كاش، عرض مؤشر تحميل داخل التبويب فقط (بدون Loading العام)
+        // إن لم يكن هناك كاش، عرض هيكل سكيليتون (شكل بطاقات) لتحسين الإحساس بالسرعة
         if (!this.cache.members || this.cache.members.length === 0) {
-            container.innerHTML = '<div class="empty-state col-span-full"><p class="text-gray-500">جاري التحميل...</p></div>';
+            container.innerHTML = this.getTeamListSkeletonHTML();
         }
 
         try {
@@ -6119,37 +6134,45 @@ const SafetyHealthManagement = {
             return;
         }
 
-        try {
-            Loading.show();
-            container.innerHTML = '<div class="empty-state"><p class="text-gray-500">جاري تحليل البيانات...</p></div>';
+        // عرض هيكل تحميل فوراً (بدون شاشة تحميل عامة) لتجربة أسرع
+        container.innerHTML = `
+            <div class="shm-analysis-skeleton space-y-4 p-4">
+                <div class="h-20 bg-gray-100 rounded-xl animate-pulse"></div>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    ${Array(6).fill(0).map(() => '<div class="h-24 bg-gray-100 rounded-xl animate-pulse"></div>').join('')}
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="h-32 bg-gray-100 rounded-xl animate-pulse"></div>
+                    <div class="h-32 bg-gray-100 rounded-xl animate-pulse"></div>
+                </div>
+                <p class="text-center text-gray-500 text-sm">جاري تحميل بيانات العضو من النظام...</p>
+            </div>`;
 
-            // جلب بيانات العضو
-            const memberResponse = await GoogleIntegration.sendRequest({
-                action: 'getSafetyTeamMember',
-                data: { memberId: memberId }
-            });
+        try {
+            const mid = String(memberId);
+
+            // جلب بيانات العضو وجميع المصادر بالتوازي لتسريع التحليل (طلب واحد متوازي بدل تسلسلي)
+            const [memberResponse, incidentsResponse, nearMissResponse, ptwResponse, trainingResponse,
+                   inspectionsResponse, attendanceResponse, leavesResponse, kpisResponse, observationsResponse] = await Promise.all([
+                GoogleIntegration.sendRequest({ action: 'getSafetyTeamMember', data: { memberId: memberId } }),
+                GoogleIntegration.sendRequest({ action: 'getAllIncidents', data: { filters: {} } }).then(v => ({ status: 'fulfilled', value: v })).catch(e => ({ status: 'rejected', reason: e })),
+                GoogleIntegration.sendRequest({ action: 'getAllNearMisses', data: { filters: {} } }).then(v => ({ status: 'fulfilled', value: v })).catch(e => ({ status: 'rejected', reason: e })),
+                GoogleIntegration.sendRequest({ action: 'getAllPTWs', data: { filters: {} } }).then(v => ({ status: 'fulfilled', value: v })).catch(e => ({ status: 'rejected', reason: e })),
+                GoogleIntegration.sendRequest({ action: 'getAllTrainings', data: { filters: {} } }).then(v => ({ status: 'fulfilled', value: v })).catch(e => ({ status: 'rejected', reason: e })),
+                GoogleIntegration.sendRequest({ action: 'getAllPeriodicInspectionRecords', data: { filters: {} } }).then(v => ({ status: 'fulfilled', value: v })).catch(e => ({ status: 'rejected', reason: e })),
+                GoogleIntegration.sendRequest({ action: 'getSafetyTeamAttendance', data: { memberId: memberId } }).then(v => ({ status: 'fulfilled', value: v })).catch(e => ({ status: 'rejected', reason: e })),
+                GoogleIntegration.sendRequest({ action: 'getSafetyTeamLeaves', data: { memberId: memberId } }).then(v => ({ status: 'fulfilled', value: v })).catch(e => ({ status: 'rejected', reason: e })),
+                GoogleIntegration.sendRequest({ action: 'getSafetyTeamKPIs', data: { memberId: memberId } }).then(v => ({ status: 'fulfilled', value: v })).catch(e => ({ status: 'rejected', reason: e })),
+                GoogleIntegration.sendRequest({ action: 'getAllObservations', data: { filters: {} } }).then(v => ({ status: 'fulfilled', value: v })).catch(e => ({ status: 'rejected', reason: e }))
+            ]);
 
             if (!memberResponse.success || !memberResponse.data) {
                 Notification.error('لم يتم العثور على عضو الفريق');
+                container.innerHTML = '<div class="empty-state"><p class="text-red-500">لم يتم العثور على عضو الفريق</p></div>';
                 return;
             }
 
             const member = memberResponse.data;
-            // توحيد المقارنة: استخدام string لضمان تطابق 100% مع البيانات القادمة من الـ Backend (قد تكون id كنص أو رقم)
-            const mid = String(memberId);
-
-            // جلب جميع البيانات المتعلقة بالعضو من جميع المديولات
-            const [incidentsResponse, nearMissResponse, ptwResponse, trainingResponse, 
-                   inspectionsResponse, attendanceResponse, leavesResponse, kpisResponse] = await Promise.allSettled([
-                GoogleIntegration.sendRequest({ action: 'getAllIncidents', data: { filters: {} } }),
-                GoogleIntegration.sendRequest({ action: 'getAllNearMisses', data: { filters: {} } }),
-                GoogleIntegration.sendRequest({ action: 'getAllPTWs', data: { filters: {} } }),
-                GoogleIntegration.sendRequest({ action: 'getAllTrainings', data: { filters: {} } }),
-                GoogleIntegration.sendRequest({ action: 'getAllPeriodicInspectionRecords', data: { filters: {} } }),
-                GoogleIntegration.sendRequest({ action: 'getSafetyTeamAttendance', data: { memberId: memberId } }),
-                GoogleIntegration.sendRequest({ action: 'getSafetyTeamLeaves', data: { memberId: memberId } }),
-                GoogleIntegration.sendRequest({ action: 'getSafetyTeamKPIs', data: { memberId: memberId } })
-            ]);
 
             // محاولة جلب المخالفات من AppState أو استخدام array فارغ
             let violationsData = [];
@@ -6208,6 +6231,14 @@ const SafetyHealthManagement = {
                     eq(ins.inspector) || eq(ins.responsible) || eq(ins.assignedTo)
                 ) : [];
 
+            // الملاحظات: تسجيل باسم العضو (supervisor أو observerName مطابق للاسم)
+            const observationsRaw = observationsResponse.status === 'fulfilled' && observationsResponse.value && observationsResponse.value.success
+                ? (observationsResponse.value.data || []) : [];
+            const observations = observationsRaw.filter(o =>
+                eq(o.supervisor) || eq(o.responsible) || eq(o.reportedBy) ||
+                (o.observerName && member.name && String(o.observerName).trim() === String(member.name).trim())
+            );
+
             const attendance = attendanceResponse.status === 'fulfilled' && attendanceResponse.value && attendanceResponse.value.success
                 ? (attendanceResponse.value.data || []) : [];
 
@@ -6225,7 +6256,7 @@ const SafetyHealthManagement = {
                 });
             }
 
-            // حساب الإحصائيات مع قيم افتراضية آمنة (منع undefined في العرض)
+            // حساب الإحصائيات مع قيم افتراضية آمنة (كل ما تم تسجيله باسم العضو على النظام)
             const stats = {
                 totalIncidents: incidents.length,
                 totalNearMisses: nearMisses.length,
@@ -6233,6 +6264,7 @@ const SafetyHealthManagement = {
                 totalViolations: violations.length,
                 totalTrainings: trainings.length,
                 totalInspections: inspections.length,
+                totalObservations: observations.length,
                 totalAttendanceDays: attendance.length,
                 presentDays: attendance.filter(a => a && (a.status === 'حاضر' || a.status === 'present')).length,
                 absentDays: attendance.filter(a => a && (a.status === 'غائب' || a.status === 'absent')).length,
@@ -6250,165 +6282,175 @@ const SafetyHealthManagement = {
             const safe = (n, def = 0) => (n != null && Number.isFinite(Number(n)) ? Number(n) : def);
             const k = stats.latestKPI;
 
-            // عرض النتائج
+            // عرض النتائج بتصميم احترافي للكروت
             container.innerHTML = `
-                <div class="space-y-6">
-                    <!-- معلومات العضو -->
-                    <div class="bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200 rounded-lg p-6">
-                        <div class="flex items-center justify-between mb-4">
+                <div id="shm-analysis-root" class="shm-analysis space-y-6">
+                    <style>
+                        .shm-analysis .shm-analysis-card { border-radius: 16px; box-shadow: 0 4px 14px rgba(0,0,0,0.06); border: 1px solid #e5e7eb; transition: box-shadow 0.2s, transform 0.2s; overflow: hidden; }
+                        .shm-analysis .shm-analysis-card:hover { box-shadow: 0 8px 24px rgba(0,0,0,0.08); }
+                        .shm-analysis .shm-analysis-card .shm-icon-wrap { width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.25rem; flex-shrink: 0; }
+                        .shm-analysis .shm-analysis-card .shm-value { font-size: 1.875rem; font-weight: 800; line-height: 1.2; letter-spacing: -0.02em; }
+                        .shm-analysis .shm-analysis-card .shm-label { font-size: 0.8125rem; font-weight: 600; color: #6b7280; margin-bottom: 0.25rem; }
+                        .shm-analysis .shm-analysis-card .shm-desc { font-size: 0.75rem; color: #9ca3af; margin-top: 0.25rem; }
+                        .shm-analysis .shm-section-card { border-radius: 16px; box-shadow: 0 4px 14px rgba(0,0,0,0.06); border: 1px solid #e5e7eb; padding: 1.5rem; }
+                        .shm-analysis .shm-section-title { font-size: 1rem; font-weight: 700; color: #374151; display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1rem; }
+                    </style>
+                    <!-- بطاقة العضو وتاريخ التحليل -->
+                    <div class="shm-section-card bg-gradient-to-r from-slate-50 to-blue-50/50 border-blue-100">
+                        <div class="flex flex-wrap items-center justify-between gap-4">
                             <div>
-                                <h3 class="text-2xl font-bold text-gray-800 mb-1">${Utils.escapeHTML(member.name || '')}</h3>
-                                <p class="text-gray-600">${Utils.escapeHTML(member.position || '')} - ${Utils.escapeHTML(member.department || '')}</p>
+                                <h3 class="text-xl font-bold text-gray-800 mb-1">${Utils.escapeHTML(member.name || '')}</h3>
+                                <p class="text-gray-600 text-sm">${Utils.escapeHTML(member.position || '')} — ${Utils.escapeHTML(member.department || '')}</p>
                             </div>
-                            <div class="text-right">
-                                <p class="text-sm text-gray-500">تاريخ التحليل</p>
-                                <p class="text-lg font-semibold text-gray-700">${new Date().toLocaleDateString('ar-SA')}</p>
+                            <div class="text-left">
+                                <p class="text-xs font-medium text-gray-500">تاريخ التحليل</p>
+                                <p class="text-base font-bold text-gray-700">${new Date().toLocaleDateString('ar-SA')}</p>
                             </div>
                         </div>
                     </div>
 
-                    <!-- إحصائيات سريعة (قيم من الفلاتر المطابقة للـ Backend) -->
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                        <div class="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
-                            <div class="flex items-center justify-between mb-2">
-                                <h4 class="font-semibold text-gray-700">الحوادث</h4>
-                                <i class="fas fa-exclamation-triangle text-red-500 text-xl"></i>
+                    <!-- إحصائيات سريعة: كل ما تم تسجيله باسم العضو على النظام -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+                        <div class="shm-analysis-card bg-white p-5 flex items-start gap-4">
+                            <div class="shm-icon-wrap bg-emerald-100 text-emerald-600"><i class="fas fa-chalkboard-teacher"></i></div>
+                            <div class="min-w-0 flex-1">
+                                <p class="shm-label">التدريبات</p>
+                                <p class="shm-value text-emerald-600">${safe(stats.totalTrainings)}</p>
+                                <p class="shm-desc">عدد التدريبات التي شارك فيها</p>
                             </div>
-                            <p class="text-3xl font-bold text-red-600">${safe(stats.totalIncidents)}</p>
-                            <p class="text-sm text-gray-500 mt-1">إجمالي الحوادث المعالجة</p>
                         </div>
-
-                        <div class="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
-                            <div class="flex items-center justify-between mb-2">
-                                <h4 class="font-semibold text-gray-700">Near Miss</h4>
-                                <i class="fas fa-exclamation-circle text-orange-500 text-xl"></i>
+                        <div class="shm-analysis-card bg-white p-5 flex items-start gap-4">
+                            <div class="shm-icon-wrap bg-indigo-100 text-indigo-600"><i class="fas fa-file-signature"></i></div>
+                            <div class="min-w-0 flex-1">
+                                <p class="shm-label">التصاريح (PTW)</p>
+                                <p class="shm-value text-indigo-600">${safe(stats.totalPTWs)}</p>
+                                <p class="shm-desc">عدد التصاريح المسجلة باسمه</p>
                             </div>
-                            <p class="text-3xl font-bold text-orange-600">${safe(stats.totalNearMisses)}</p>
-                            <p class="text-sm text-gray-500 mt-1">إجمالي الحوادث المحتملة</p>
                         </div>
-
-                        <div class="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
-                            <div class="flex items-center justify-between mb-2">
-                                <h4 class="font-semibold text-gray-700">التفتيشات</h4>
-                                <i class="fas fa-search text-blue-500 text-xl"></i>
+                        <div class="shm-analysis-card bg-white p-5 flex items-start gap-4">
+                            <div class="shm-icon-wrap bg-blue-100 text-blue-600"><i class="fas fa-clipboard-check"></i></div>
+                            <div class="min-w-0 flex-1">
+                                <p class="shm-label">الجولات التفتيشية</p>
+                                <p class="shm-value text-blue-600">${safe(stats.totalInspections)}</p>
+                                <p class="shm-desc">عدد الجولات التفتيشية</p>
                             </div>
-                            <p class="text-3xl font-bold text-blue-600">${safe(stats.totalInspections)}</p>
-                            <p class="text-sm text-gray-500 mt-1">إجمالي الجولات التفتيشية</p>
                         </div>
-
-                        <div class="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
-                            <div class="flex items-center justify-between mb-2">
-                                <h4 class="font-semibold text-gray-700">التدريبات</h4>
-                                <i class="fas fa-chalkboard-teacher text-green-500 text-xl"></i>
+                        <div class="shm-analysis-card bg-white p-5 flex items-start gap-4">
+                            <div class="shm-icon-wrap bg-purple-100 text-purple-600"><i class="fas fa-sticky-note"></i></div>
+                            <div class="min-w-0 flex-1">
+                                <p class="shm-label">الملاحظات</p>
+                                <p class="shm-value text-purple-600">${safe(stats.totalObservations)}</p>
+                                <p class="shm-desc">عدد الملاحظات المسجلة باسمه</p>
                             </div>
-                            <p class="text-3xl font-bold text-green-600">${safe(stats.totalTrainings)}</p>
-                            <p class="text-sm text-gray-500 mt-1">إجمالي التدريبات</p>
+                        </div>
+                        <div class="shm-analysis-card bg-white p-5 flex items-start gap-4">
+                            <div class="shm-icon-wrap bg-red-100 text-red-600"><i class="fas fa-exclamation-triangle"></i></div>
+                            <div class="min-w-0 flex-1">
+                                <p class="shm-label">الحوادث</p>
+                                <p class="shm-value text-red-600">${safe(stats.totalIncidents)}</p>
+                                <p class="shm-desc">إجمالي الحوادث المسجلة</p>
+                            </div>
+                        </div>
+                        <div class="shm-analysis-card bg-white p-5 flex items-start gap-4">
+                            <div class="shm-icon-wrap bg-amber-100 text-amber-600"><i class="fas fa-exclamation-circle"></i></div>
+                            <div class="min-w-0 flex-1">
+                                <p class="shm-label">Near Miss</p>
+                                <p class="shm-value text-amber-600">${safe(stats.totalNearMisses)}</p>
+                                <p class="shm-desc">الحوادث الوشيكة المسجلة</p>
+                            </div>
                         </div>
                     </div>
 
-                    <!-- تفاصيل إضافية -->
+                    <!-- الحضور والأنشطة الأخرى -->
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div class="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
-                            <h4 class="font-semibold text-gray-700 mb-4 flex items-center">
-                                <i class="fas fa-calendar-check text-purple-500 ml-2"></i>
-                                الحضور والإجازات
-                            </h4>
-                            <div class="space-y-3">
-                                <div class="flex justify-between items-center">
-                                    <span class="text-gray-600">أيام الحضور:</span>
-                                    <span class="font-bold text-green-600">${safe(stats.presentDays)}</span>
+                        <div class="shm-section-card bg-white">
+                            <h4 class="shm-section-title"><span class="shm-icon-wrap bg-purple-100 text-purple-600 w-9 h-9"><i class="fas fa-calendar-check"></i></span>الحضور والإجازات</h4>
+                            <div class="grid grid-cols-2 gap-3">
+                                <div class="flex justify-between items-center py-2 border-b border-gray-100">
+                                    <span class="text-gray-600 text-sm">أيام الحضور</span>
+                                    <span class="font-bold text-emerald-600">${safe(stats.presentDays)}</span>
                                 </div>
-                                <div class="flex justify-between items-center">
-                                    <span class="text-gray-600">أيام الغياب:</span>
+                                <div class="flex justify-between items-center py-2 border-b border-gray-100">
+                                    <span class="text-gray-600 text-sm">أيام الغياب</span>
                                     <span class="font-bold text-red-600">${safe(stats.absentDays)}</span>
                                 </div>
-                                <div class="flex justify-between items-center">
-                                    <span class="text-gray-600">معدل الحضور:</span>
+                                <div class="flex justify-between items-center py-2 border-b border-gray-100">
+                                    <span class="text-gray-600 text-sm">معدل الحضور</span>
                                     <span class="font-bold text-blue-600">${attendanceRate}%</span>
                                 </div>
-                                <div class="flex justify-between items-center">
-                                    <span class="text-gray-600">الإجازات:</span>
-                                    <span class="font-bold text-purple-600">${safe(stats.totalLeaves)} (${safe(stats.activeLeaves)} نشطة)</span>
+                                <div class="flex justify-between items-center py-2 border-b border-gray-100">
+                                    <span class="text-gray-600 text-sm">الإجازات</span>
+                                    <span class="font-bold text-purple-600">${safe(stats.totalLeaves)} <span class="text-gray-400 font-normal text-xs">(${safe(stats.activeLeaves)} نشطة)</span></span>
                                 </div>
                             </div>
                         </div>
-
-                        <div class="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
-                            <h4 class="font-semibold text-gray-700 mb-4 flex items-center">
-                                <i class="fas fa-tasks text-indigo-500 ml-2"></i>
-                                الأنشطة الأخرى
-                            </h4>
-                            <div class="space-y-3">
-                                <div class="flex justify-between items-center">
-                                    <span class="text-gray-600">PTW:</span>
+                        <div class="shm-section-card bg-white">
+                            <h4 class="shm-section-title"><span class="shm-icon-wrap bg-indigo-100 text-indigo-600 w-9 h-9"><i class="fas fa-tasks"></i></span>الأنشطة الأخرى</h4>
+                            <div class="grid grid-cols-2 gap-3">
+                                <div class="flex justify-between items-center py-2 border-b border-gray-100">
+                                    <span class="text-gray-600 text-sm">PTW</span>
                                     <span class="font-bold text-indigo-600">${safe(stats.totalPTWs)}</span>
                                 </div>
-                                <div class="flex justify-between items-center">
-                                    <span class="text-gray-600">المخالفات:</span>
-                                    <span class="font-bold text-yellow-600">${safe(stats.totalViolations)}</span>
+                                <div class="flex justify-between items-center py-2 border-b border-gray-100">
+                                    <span class="text-gray-600 text-sm">المخالفات</span>
+                                    <span class="font-bold text-amber-600">${safe(stats.totalViolations)}</span>
                                 </div>
                             </div>
                         </div>
                     </div>
 
                     ${stats.latestKPI ? `
-                    <!-- مؤشرات الأداء (آخر فترة - من مصدر getSafetyTeamKPIs المرتب حسب الفترة) -->
-                    <div class="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
-                        <h4 class="font-semibold text-gray-700 mb-4 flex items-center">
-                            <i class="fas fa-chart-line text-blue-500 ml-2"></i>
-                            مؤشرات الأداء (آخر فترة)
-                        </h4>
+                    <!-- مؤشرات الأداء (آخر فترة) -->
+                    <div class="shm-section-card bg-white">
+                        <h4 class="shm-section-title"><span class="shm-icon-wrap bg-blue-100 text-blue-600 w-9 h-9"><i class="fas fa-chart-line"></i></span>مؤشرات الأداء (آخر فترة)</h4>
                         <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                            <div class="shm-kpi-card min-h-[4.5rem] flex flex-col justify-end">
-                                <p class="text-sm text-gray-500">الجولات التفتيشية</p>
-                                <p class="text-2xl font-bold text-blue-600">${safe(k && k.inspectionsCount)}</p>
-                                <p class="text-xs text-gray-400 mt-0.5">الهدف: ${safe(k && k.targetInspections, 20)}</p>
+                            <div class="bg-gray-50 rounded-xl p-4 border border-gray-100">
+                                <p class="shm-label">الجولات التفتيشية</p>
+                                <p class="shm-value text-blue-600">${safe(k && k.inspectionsCount)}</p>
+                                <p class="shm-desc">الهدف: ${safe(k && k.targetInspections, 20)}</p>
                             </div>
-                            <div class="shm-kpi-card min-h-[4.5rem] flex flex-col justify-end">
-                                <p class="text-sm text-gray-500">الإجراءات المغلقة</p>
-                                <p class="text-2xl font-bold text-green-600">${safe(k && k.closedActionsCount)}</p>
+                            <div class="bg-gray-50 rounded-xl p-4 border border-gray-100">
+                                <p class="shm-label">الإجراءات المغلقة</p>
+                                <p class="shm-value text-emerald-600">${safe(k && k.closedActionsCount)}</p>
                             </div>
-                            <div class="shm-kpi-card min-h-[4.5rem] flex flex-col justify-end">
-                                <p class="text-sm text-gray-500">الملاحظات</p>
-                                <p class="text-2xl font-bold text-purple-600">${safe(k && k.observationsCount)}</p>
-                                <p class="text-xs text-gray-400 mt-0.5">الهدف: ${safe(k && k.targetObservations, 15)}</p>
+                            <div class="bg-gray-50 rounded-xl p-4 border border-gray-100">
+                                <p class="shm-label">الملاحظات</p>
+                                <p class="shm-value text-purple-600">${safe(k && k.observationsCount)}</p>
+                                <p class="shm-desc">الهدف: ${safe(k && k.targetObservations, 15)}</p>
                             </div>
-                            <div class="shm-kpi-card min-h-[4.5rem] flex flex-col justify-end">
-                                <p class="text-sm text-gray-500">التدريبات</p>
-                                <p class="text-2xl font-bold text-orange-600">${safe(k && k.trainingsCount)}</p>
-                                <p class="text-xs text-gray-400 mt-0.5">الهدف: ${safe(k && k.targetTrainings, 2)}</p>
+                            <div class="bg-gray-50 rounded-xl p-4 border border-gray-100">
+                                <p class="shm-label">التدريبات</p>
+                                <p class="shm-value text-amber-600">${safe(k && k.trainingsCount)}</p>
+                                <p class="shm-desc">الهدف: ${safe(k && k.targetTrainings, 2)}</p>
                             </div>
                         </div>
                     </div>
                     ` : ''}
 
                     <!-- تفاصيل البيانات -->
-                    <div class="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
-                        <h4 class="font-semibold text-gray-700 mb-4 flex items-center">
-                            <i class="fas fa-list text-gray-500 ml-2"></i>
-                            تفاصيل البيانات
-                        </h4>
+                    <div class="shm-section-card bg-white">
+                        <h4 class="shm-section-title"><span class="shm-icon-wrap bg-gray-100 text-gray-600 w-9 h-9"><i class="fas fa-list"></i></span>تفاصيل البيانات</h4>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
-                                <h5 class="font-medium text-gray-600 mb-2">الحوادث (${safe(stats.totalIncidents)})</h5>
-                                <div class="space-y-1 max-h-40 overflow-y-auto">
+                                <h5 class="font-semibold text-gray-700 mb-2 text-sm">الحوادث (${safe(stats.totalIncidents)})</h5>
+                                <div class="space-y-1 max-h-40 overflow-y-auto rounded-lg border border-gray-100 bg-gray-50/50 p-2">
                                     ${incidents.slice(0, 5).map(inc => `
-                                        <div class="text-sm text-gray-500 p-2 bg-gray-50 rounded">
-                                            ${Utils.escapeHTML(inc.title || inc.description || '')} - ${inc.date ? new Date(inc.date).toLocaleDateString('ar-SA') : ''}
+                                        <div class="text-sm text-gray-600 p-2 rounded bg-white border border-gray-100">
+                                            ${Utils.escapeHTML((inc.title || inc.description || '').slice(0, 60))}${(inc.title || inc.description || '').length > 60 ? '...' : ''} — ${inc.date ? new Date(inc.date).toLocaleDateString('ar-SA') : ''}
                                         </div>
                                     `).join('')}
-                                    ${incidents.length > 5 ? `<p class="text-xs text-gray-400 mt-2">و ${incidents.length - 5} أكثر...</p>` : ''}
+                                    ${incidents.length > 5 ? `<p class="text-xs text-gray-400 mt-2 px-2">و ${incidents.length - 5} أكثر...</p>` : ''}
                                 </div>
                             </div>
                             <div>
-                                <h5 class="font-medium text-gray-600 mb-2">التفتيشات (${safe(stats.totalInspections)})</h5>
-                                <div class="space-y-1 max-h-40 overflow-y-auto">
+                                <h5 class="font-semibold text-gray-700 mb-2 text-sm">التفتيشات (${safe(stats.totalInspections)})</h5>
+                                <div class="space-y-1 max-h-40 overflow-y-auto rounded-lg border border-gray-100 bg-gray-50/50 p-2">
                                     ${inspections.slice(0, 5).map(ins => `
-                                        <div class="text-sm text-gray-500 p-2 bg-gray-50 rounded">
-                                            ${Utils.escapeHTML(ins.categoryName || ins.inspectionType || '')} - ${ins.inspectionDate ? new Date(ins.inspectionDate).toLocaleDateString('ar-SA') : ''}
+                                        <div class="text-sm text-gray-600 p-2 rounded bg-white border border-gray-100">
+                                            ${Utils.escapeHTML((ins.categoryName || ins.inspectionType || '').slice(0, 50))} — ${ins.inspectionDate ? new Date(ins.inspectionDate).toLocaleDateString('ar-SA') : ''}
                                         </div>
                                     `).join('')}
-                                    ${inspections.length > 5 ? `<p class="text-xs text-gray-400 mt-2">و ${inspections.length - 5} أكثر...</p>` : ''}
+                                    ${inspections.length > 5 ? `<p class="text-xs text-gray-400 mt-2 px-2">و ${inspections.length - 5} أكثر...</p>` : ''}
                                 </div>
                             </div>
                         </div>
