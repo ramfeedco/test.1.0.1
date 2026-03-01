@@ -2717,11 +2717,16 @@ const SafetyHealthManagement = {
         
         container.innerHTML = `
             <style>
-                #kpis-container .shm-kpi-card { min-width: 0; overflow: hidden; padding: 1.25rem; border-radius: 12px; min-height: 140px; display: flex; flex-direction: column; }
-                #kpis-container .shm-kpi-card .shm-kpi-title { font-size: 0.95rem; font-weight: 600; margin-bottom: 0.5rem; word-break: break-word; line-height: 1.35; min-height: 2.7em; }
-                #kpis-container .shm-kpi-card .shm-kpi-value { font-size: 1.75rem; font-weight: 700; margin-bottom: 0.25rem; }
-                #kpis-container .shm-kpi-bar-wrap { margin-top: auto; }
-                #kpis-container .shm-kpi-chart-row { padding: 1rem 0; border-bottom: 1px solid #e5e7eb; min-height: 72px; }
+                #kpis-container .shm-kpi-h { display: flex; align-items: center; gap: 1rem; padding: 1rem 1.25rem; border-radius: 14px; border: 1px solid #e5e7eb; background: #fff; box-shadow: 0 2px 8px rgba(0,0,0,0.04); transition: box-shadow 0.2s; min-height: auto; }
+                #kpis-container .shm-kpi-h:hover { box-shadow: 0 4px 14px rgba(0,0,0,0.08); }
+                #kpis-container .shm-kpi-h .shm-kpi-icon { width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.25rem; flex-shrink: 0; }
+                #kpis-container .shm-kpi-h .shm-kpi-body { flex: 1; min-width: 0; }
+                #kpis-container .shm-kpi-h .shm-kpi-label { font-size: 0.875rem; font-weight: 600; color: #374151; margin-bottom: 0.25rem; }
+                #kpis-container .shm-kpi-h .shm-kpi-value { font-size: 1.5rem; font-weight: 800; color: #1f2937; }
+                #kpis-container .shm-kpi-h .shm-kpi-target { font-size: 0.75rem; color: #6b7280; margin-top: 0.25rem; }
+                #kpis-container .shm-kpi-h .shm-kpi-bar-wrap { width: 100px; flex-shrink: 0; height: 8px; background: #e5e7eb; border-radius: 999px; overflow: hidden; }
+                #kpis-container .shm-kpi-h .shm-kpi-bar-fill { height: 100%; border-radius: 999px; transition: width 0.3s; }
+                #kpis-container .shm-kpi-chart-row { padding: 1rem 0; border-bottom: 1px solid #e5e7eb; }
                 #kpis-container .shm-kpi-chart-row:last-child { border-bottom: none; }
             </style>
             <div class="mb-4 flex flex-wrap justify-end gap-2">
@@ -2730,68 +2735,85 @@ const SafetyHealthManagement = {
                     تعديل المؤشرات يدوياً
                 </button>
             </div>
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 mb-6">
-                <div class="kpi-card success shm-kpi-card">
-                    <h3 class="shm-kpi-title text-white">الجولات التفتيشية</h3>
-                    <p class="shm-kpi-value text-white">${kpi.inspectionsCount || 0}</p>
-                    <p class="text-sm text-white text-opacity-90 mb-2">الهدف: ${kpi.targetInspections || 20}</p>
-                    <div class="shm-kpi-bar-wrap w-full bg-white bg-opacity-30 rounded-full h-2.5">
-                        <div class="bg-white rounded-full h-2.5 transition-all duration-300" style="width: ${inspectionsProgress}%"></div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                <div class="shm-kpi-h">
+                    <div class="shm-kpi-icon bg-blue-100 text-blue-600"><i class="fas fa-clipboard-check"></i></div>
+                    <div class="shm-kpi-body">
+                        <div class="shm-kpi-label">الجولات التفتيشية</div>
+                        <div class="shm-kpi-value">${kpi.inspectionsCount || 0}</div>
+                        <div class="shm-kpi-target">الهدف: ${kpi.targetInspections || 20}</div>
                     </div>
+                    <div class="shm-kpi-bar-wrap"><div class="shm-kpi-bar-fill bg-blue-500" style="width: ${inspectionsProgress}%"></div></div>
                 </div>
-                <div class="kpi-card warning shm-kpi-card">
-                    <h3 class="shm-kpi-title text-white">الإجراءات المغلقة</h3>
-                    <p class="shm-kpi-value text-white">${kpi.closedActionsCount || 0}</p>
-                    <p class="text-sm text-white text-opacity-90 mb-2">نسبة الإغلاق: ${kpi.targetActionsClosure || 80}%</p>
-                    <div class="shm-kpi-bar-wrap w-full bg-white bg-opacity-30 rounded-full h-2.5">
-                        <div class="bg-white rounded-full h-2.5 transition-all duration-300" style="width: ${Math.min(actionsProgress, 100)}%"></div>
+                <div class="shm-kpi-h">
+                    <div class="shm-kpi-icon bg-emerald-100 text-emerald-600"><i class="fas fa-check-double"></i></div>
+                    <div class="shm-kpi-body">
+                        <div class="shm-kpi-label">الإجراءات المغلقة</div>
+                        <div class="shm-kpi-value">${kpi.closedActionsCount || 0}</div>
+                        <div class="shm-kpi-target">نسبة الإغلاق: ${kpi.targetActionsClosure || 80}%</div>
                     </div>
+                    <div class="shm-kpi-bar-wrap"><div class="shm-kpi-bar-fill bg-emerald-500" style="width: ${Math.min(actionsProgress, 100)}%"></div></div>
                 </div>
-                <div class="kpi-card info shm-kpi-card">
-                    <h3 class="shm-kpi-title text-white">الملاحظات</h3>
-                    <p class="shm-kpi-value text-white">${kpi.observationsCount || 0}</p>
-                    <p class="text-sm text-white text-opacity-90 mb-2">الهدف: ${kpi.targetObservations || 15}</p>
-                    <div class="shm-kpi-bar-wrap w-full bg-white bg-opacity-30 rounded-full h-2.5">
-                        <div class="bg-white rounded-full h-2.5 transition-all duration-300" style="width: ${observationsProgress}%"></div>
+                <div class="shm-kpi-h">
+                    <div class="shm-kpi-icon bg-purple-100 text-purple-600"><i class="fas fa-sticky-note"></i></div>
+                    <div class="shm-kpi-body">
+                        <div class="shm-kpi-label">الملاحظات</div>
+                        <div class="shm-kpi-value">${kpi.observationsCount || 0}</div>
+                        <div class="shm-kpi-target">الهدف: ${kpi.targetObservations || 15}</div>
                     </div>
+                    <div class="shm-kpi-bar-wrap"><div class="shm-kpi-bar-fill bg-purple-500" style="width: ${observationsProgress}%"></div></div>
                 </div>
-                <div class="kpi-card shm-kpi-card">
-                    <h3 class="shm-kpi-title text-white">التدريبات</h3>
-                    <p class="shm-kpi-value text-white">${kpi.trainingsCount || 0}</p>
-                    <p class="text-sm text-white text-opacity-90 mb-2">الهدف: ${kpi.targetTrainings || 2}</p>
-                    <div class="shm-kpi-bar-wrap w-full bg-white bg-opacity-30 rounded-full h-2.5">
-                        <div class="bg-white rounded-full h-2.5 transition-all duration-300" style="width: ${trainingsProgress}%"></div>
+                <div class="shm-kpi-h">
+                    <div class="shm-kpi-icon bg-amber-100 text-amber-600"><i class="fas fa-chalkboard-teacher"></i></div>
+                    <div class="shm-kpi-body">
+                        <div class="shm-kpi-label">التدريبات</div>
+                        <div class="shm-kpi-value">${kpi.trainingsCount || 0}</div>
+                        <div class="shm-kpi-target">الهدف: ${kpi.targetTrainings || 2}</div>
                     </div>
+                    <div class="shm-kpi-bar-wrap"><div class="shm-kpi-bar-fill bg-amber-500" style="width: ${trainingsProgress}%"></div></div>
                 </div>
-                <div class="kpi-card ${commitmentProgress >= 95 ? 'success' : 'warning'} shm-kpi-card">
-                    <h3 class="shm-kpi-title text-white">نسبة الالتزام</h3>
-                    <p class="shm-kpi-value text-white">${commitmentProgress.toFixed(1)}%</p>
-                    <p class="text-sm text-white text-opacity-90 mb-2">الهدف: ${kpi.targetCommitment || 95}%</p>
-                    <div class="shm-kpi-bar-wrap w-full bg-white bg-opacity-30 rounded-full h-2.5">
-                        <div class="bg-white rounded-full h-2.5 transition-all duration-300" style="width: ${commitmentProgress}%"></div>
+                <div class="shm-kpi-h">
+                    <div class="shm-kpi-icon ${commitmentProgress >= 95 ? 'bg-emerald-100 text-emerald-600' : 'bg-amber-100 text-amber-600'}"><i class="fas fa-percentage"></i></div>
+                    <div class="shm-kpi-body">
+                        <div class="shm-kpi-label">نسبة الالتزام</div>
+                        <div class="shm-kpi-value">${commitmentProgress.toFixed(1)}%</div>
+                        <div class="shm-kpi-target">الهدف: ${kpi.targetCommitment || 95}%</div>
                     </div>
+                    <div class="shm-kpi-bar-wrap"><div class="shm-kpi-bar-fill ${commitmentProgress >= 95 ? 'bg-emerald-500' : 'bg-amber-500'}" style="width: ${Math.min(commitmentProgress, 100)}%"></div></div>
                 </div>
                 ${kpi.incidentsHandledCount !== undefined ? `
-                <div class="kpi-card danger shm-kpi-card">
-                    <h3 class="shm-kpi-title text-white">الحوادث المعالجة</h3>
-                    <p class="shm-kpi-value text-white">${kpi.incidentsHandledCount || 0}</p>
+                <div class="shm-kpi-h">
+                    <div class="shm-kpi-icon bg-red-100 text-red-600"><i class="fas fa-exclamation-triangle"></i></div>
+                    <div class="shm-kpi-body">
+                        <div class="shm-kpi-label">الحوادث المعالجة</div>
+                        <div class="shm-kpi-value">${kpi.incidentsHandledCount || 0}</div>
+                    </div>
+                    <div class="shm-kpi-bar-wrap"><div class="shm-kpi-bar-fill bg-gray-200" style="width: 0%"></div></div>
                 </div>
                 ` : ''}
                 ${kpi.nearMissCount !== undefined ? `
-                <div class="kpi-card warning shm-kpi-card">
-                    <h3 class="shm-kpi-title text-white">Near Miss</h3>
-                    <p class="shm-kpi-value text-white">${kpi.nearMissCount || 0}</p>
+                <div class="shm-kpi-h">
+                    <div class="shm-kpi-icon bg-amber-100 text-amber-600"><i class="fas fa-exclamation-circle"></i></div>
+                    <div class="shm-kpi-body">
+                        <div class="shm-kpi-label">Near Miss</div>
+                        <div class="shm-kpi-value">${kpi.nearMissCount || 0}</div>
+                    </div>
+                    <div class="shm-kpi-bar-wrap"><div class="shm-kpi-bar-fill bg-gray-200" style="width: 0%"></div></div>
                 </div>
                 ` : ''}
                 ${kpi.ptwCount !== undefined ? `
-                <div class="kpi-card info shm-kpi-card">
-                    <h3 class="shm-kpi-title text-white">PTW المعالجة</h3>
-                    <p class="shm-kpi-value text-white">${kpi.ptwCount || 0}</p>
+                <div class="shm-kpi-h">
+                    <div class="shm-kpi-icon bg-indigo-100 text-indigo-600"><i class="fas fa-file-signature"></i></div>
+                    <div class="shm-kpi-body">
+                        <div class="shm-kpi-label">PTW المعالجة</div>
+                        <div class="shm-kpi-value">${kpi.ptwCount || 0}</div>
+                    </div>
+                    <div class="shm-kpi-bar-wrap"><div class="shm-kpi-bar-fill bg-gray-200" style="width: 0%"></div></div>
                 </div>
                 ` : ''}
             </div>
-            <div class="bg-white border border-gray-200 rounded-xl p-6 mt-6 shadow-sm">
-                <h3 class="font-semibold text-gray-800 mb-5 text-lg">مقارنة الأداء مع الأهداف</h3>
+            <div class="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
+                <h3 class="font-semibold text-gray-800 mb-4 text-lg">مقارنة الأداء مع الأهداف</h3>
                 <div class="space-y-0 divide-y divide-gray-100">
                     ${this.renderKPIChartBar('الجولات التفتيشية', kpi.inspectionsCount || 0, kpi.targetInspections || 20)}
                     ${this.renderKPIChartBar('الإجراءات المغلقة', kpi.closedActionsCount || 0, Math.max(kpi.closedActionsCount || 0, 10))}
@@ -3039,15 +3061,13 @@ const SafetyHealthManagement = {
     // ===== Helper Methods =====
     renderKPIChartBar(label, current, target) {
         const percentage = target > 0 ? Math.min((current / target) * 100, 100) : 0;
-        const color = percentage >= 80 ? 'bg-green-500' : percentage >= 50 ? 'bg-amber-500' : 'bg-red-500';
+        const color = percentage >= 80 ? 'bg-emerald-500' : percentage >= 50 ? 'bg-amber-500' : 'bg-red-500';
         return `
-            <div class="shm-kpi-chart-row">
-                <div class="flex flex-wrap items-center justify-between gap-2 mb-2">
-                    <span class="font-semibold text-gray-800">${Utils.escapeHTML(label)}</span>
-                    <span class="text-gray-500 text-sm">${current} / ${target}</span>
-                </div>
-                <div class="w-full bg-gray-200 rounded-full h-5 overflow-hidden">
-                    <div class="${color} h-5 rounded-full flex items-center justify-end pr-2 transition-all duration-300" style="min-width: ${percentage > 0 ? '2rem' : '0'}; width: ${percentage}%">
+            <div class="shm-kpi-chart-row flex flex-wrap items-center gap-3 py-3">
+                <span class="font-semibold text-gray-800 w-40 flex-shrink-0">${Utils.escapeHTML(label)}</span>
+                <span class="text-gray-500 text-sm flex-shrink-0">${current} / ${target}</span>
+                <div class="flex-1 min-w-0 bg-gray-200 rounded-full h-4 overflow-hidden">
+                    <div class="${color} h-4 rounded-full flex items-center justify-end pr-2 transition-all duration-300" style="min-width: ${percentage > 0 ? '1.5rem' : '0'}; width: ${percentage}%">
                         ${percentage > 0 ? `<span class="text-xs text-white font-bold">${percentage.toFixed(0)}%</span>` : ''}
                     </div>
                 </div>
@@ -3571,15 +3591,13 @@ const SafetyHealthManagement = {
 
     renderKPIChartBar(label, current, target) {
         const percentage = target > 0 ? Math.min((current / target) * 100, 100) : 0;
-        const color = percentage >= 80 ? 'bg-green-500' : percentage >= 50 ? 'bg-amber-500' : 'bg-red-500';
+        const color = percentage >= 80 ? 'bg-emerald-500' : percentage >= 50 ? 'bg-amber-500' : 'bg-red-500';
         return `
-            <div class="shm-kpi-chart-row">
-                <div class="flex flex-wrap items-center justify-between gap-2 mb-2">
-                    <span class="font-semibold text-gray-800">${Utils.escapeHTML(label)}</span>
-                    <span class="text-gray-500 text-sm">${current} / ${target}</span>
-                </div>
-                <div class="w-full bg-gray-200 rounded-full h-5 overflow-hidden">
-                    <div class="${color} h-5 rounded-full flex items-center justify-end pr-2 transition-all duration-300" style="min-width: ${percentage > 0 ? '2rem' : '0'}; width: ${percentage}%">
+            <div class="shm-kpi-chart-row flex flex-wrap items-center gap-3 py-3">
+                <span class="font-semibold text-gray-800 w-40 flex-shrink-0">${Utils.escapeHTML(label)}</span>
+                <span class="text-gray-500 text-sm flex-shrink-0">${current} / ${target}</span>
+                <div class="flex-1 min-w-0 bg-gray-200 rounded-full h-4 overflow-hidden">
+                    <div class="${color} h-4 rounded-full flex items-center justify-end pr-2 transition-all duration-300" style="min-width: ${percentage > 0 ? '1.5rem' : '0'}; width: ${percentage}%">
                         ${percentage > 0 ? `<span class="text-xs text-white font-bold">${percentage.toFixed(0)}%</span>` : ''}
                     </div>
                 </div>
