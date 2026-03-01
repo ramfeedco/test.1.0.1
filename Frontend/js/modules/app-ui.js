@@ -2516,8 +2516,83 @@ window.UI = {
     },
 
     /**
+     * عرض نافذة "هناك تحديث جديد" بإصدار معيّن (من التطبيق الحالي أو من الخادم).
+     * @param {string} newVersion - الإصدار الجديد المعروض للمستخدم
+     */
+    _showUpdateModal(newVersion) {
+        const storageKey = 'hse_last_seen_version';
+        if (document.getElementById('hse-update-message-modal')) return;
+        const message = (AppState.updateMessage && String(AppState.updateMessage).trim()) || 'تم إجراء تحديث على التطبيق. قد تتضمن التحديثات إضافات أو تحسينات جديدة. يرجى تحديث الصفحة للحصول على أحدث نسخة.';
+        const safeMessage = (typeof Utils !== 'undefined' && Utils.escapeHTML) ? Utils.escapeHTML(message).replace(/\n/g, '<br>') : message.replace(/\n/g, '<br>');
+        const safeVersion = (typeof Utils !== 'undefined' && Utils.escapeHTML) ? Utils.escapeHTML(newVersion) : newVersion;
+        const modal = document.createElement('div');
+        modal.id = 'hse-update-message-modal';
+        modal.setAttribute('role', 'dialog');
+        modal.setAttribute('aria-modal', 'true');
+        modal.setAttribute('aria-label', 'هناك تحديث جديد');
+        modal.className = 'hse-update-message-modal';
+        modal.style.cssText = 'position:fixed;inset:0;z-index:999999;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.5);padding:1rem;';
+        modal.innerHTML = `
+            <div class="hse-update-message-card" style="background:var(--bg-primary,#fff);color:var(--text-primary,#111);max-width:420px;width:100%;border-radius:16px;box-shadow:0 25px 50px -12px rgba(0,0,0,0.25);padding:1.5rem;text-align:right;">
+                <div style="display:flex;align-items:center;gap:0.75rem;margin-bottom:1rem;">
+                    <span style="width:48px;height:48px;border-radius:50%;background:var(--primary-color,#2563eb);color:#fff;display:flex;align-items:center;justify-content:center;"><i class="fas fa-sync-alt" style="font-size:1.25rem;"></i></span>
+                    <h2 style="margin:0;font-size:1.25rem;font-weight:700;">هناك تحديث جديد</h2>
+                </div>
+                <p style="margin:0 0 0.5rem;font-size:0.9rem;color:var(--gray-600,#4b5563);">تم إجراء تحديث على التطبيق — الإصدار: <strong>${safeVersion}</strong></p>
+                <div class="hse-update-message-body" style="margin:1rem 0;font-size:0.95rem;line-height:1.6;">${safeMessage}</div>
+                <div style="display:flex;gap:0.5rem;margin-top:1rem;flex-direction:row-reverse;">
+                    <button type="button" id="hse-update-message-reload" class="btn-primary" style="flex:1;">تحديث الصفحة الآن</button>
+                    <button type="button" id="hse-update-message-later" class="btn-secondary" style="flex:1;">لاحقاً</button>
+                </div>
+            </div>`;
+        document.body.appendChild(modal);
+
+        if (typeof Notification !== 'undefined' && Notification.info) {
+            Notification.info('هناك تحديث جديد متاح للتطبيق — يرجى تحديث الصفحة للحصول على أحدث النسخة.', { duration: 6000 });
+        }
+
+        const onReload = () => {
+            try { if (typeof localStorage !== 'undefined') localStorage.setItem(storageKey, newVersion); } catch (e) {}
+            if (modal && modal.parentNode) modal.remove();
+            window.location.reload();
+        };
+        const onLater = () => {
+            try { if (typeof localStorage !== 'undefined') localStorage.setItem(storageKey, newVersion); } catch (e) {}
+            if (modal && modal.parentNode) modal.remove();
+        };
+        const btnReload = modal.querySelector('#hse-update-message-reload');
+        const btnLater = modal.querySelector('#hse-update-message-later');
+        if (btnReload) btnReload.addEventListener('click', onReload);
+        if (btnLater) btnLater.addEventListener('click', onLater);
+        modal.addEventListener('click', (e) => { if (e.target === modal) onLater(); });
+    },
+
+    /**
+     * التحقق من إصدار التطبيق على الخادم (Vercel) — إن وُجد إصدار أحدث، عرض إشعار التحديث.
+     * يُستدعى بعد الدخول، بشكل دوري، وعند العودة إلى التبويب.
+     */
+    async _checkServerVersion() {
+        try {
+            if (typeof fetch === 'undefined') return;
+            const base = (typeof window !== 'undefined' && window.location && window.location.origin) ? window.location.origin : '';
+            if (!base || base.startsWith('file:')) return;
+            const url = base + '/version.json?t=' + (Date.now ? Date.now() : '');
+            const res = await fetch(url, { cache: 'no-store', method: 'GET' });
+            if (!res || !res.ok) return;
+            const data = await res.json();
+            const serverVersion = (data && data.version) ? String(data.version).trim() : '';
+            if (!serverVersion) return;
+            const currentVersion = (typeof AppState !== 'undefined' && AppState.appVersion) ? String(AppState.appVersion).trim() : '';
+            if (!currentVersion || serverVersion === currentVersion) return;
+            this._showUpdateModal(serverVersion);
+        } catch (e) {
+            if (AppState.debugMode && typeof Utils !== 'undefined' && Utils.safeWarn) Utils.safeWarn('⚠️ التحقق من إصدار الخادم:', e);
+        }
+    },
+
+    /**
      * عرض رسالة "هناك تحديث جديد" عند تسجيل الدخول عندما يُجرى تحديث على التطبيق (تغيّر إصدار appVersion).
-     * تظهر للمستخدمين الذين كانوا يستخدمون إصداراً سابقاً فقط — عند كل إضافة أو تحديث جديد، غيّر appVersion في app-utils.js.
+     * تظهر للمستخدمين الذين كانوا يستخدمون إصداراً سابقاً فقط — عند كل إضافة أو تحديث جديد، غيّر appVersion في app-utils.js و version.json.
      */
     _showUpdateMessageIfNeeded() {
         try {
@@ -2525,60 +2600,14 @@ window.UI = {
             if (!currentVersion) return;
             const storageKey = 'hse_last_seen_version';
             const lastSeen = (typeof localStorage !== 'undefined' && localStorage.getItem(storageKey)) ? String(localStorage.getItem(storageKey)).trim() : '';
-            // المستخدم الجديد (لم يسجّل إصداراً سابقاً): نحفظ الإصدار فقط ولا نعرض رسالة التحديث
             if (!lastSeen) {
                 try { localStorage.setItem(storageKey, currentVersion); } catch (e) {}
                 return;
             }
-            // نفس الإصدار دون تغيير — لا نعرض
             if (lastSeen === currentVersion) return;
-
-            const message = (AppState.updateMessage && String(AppState.updateMessage).trim()) || 'تم إجراء تحديث على التطبيق. قد تتضمن التحديثات إضافات أو تحسينات جديدة. يرجى تحديث الصفحة للحصول على أحدث نسخة.';
-            const safeMessage = (typeof Utils !== 'undefined' && Utils.escapeHTML) ? Utils.escapeHTML(message).replace(/\n/g, '<br>') : message.replace(/\n/g, '<br>');
-            let modal = document.getElementById('hse-update-message-modal');
-            if (modal) modal.remove();
-            modal = document.createElement('div');
-            modal.id = 'hse-update-message-modal';
-            modal.setAttribute('role', 'dialog');
-            modal.setAttribute('aria-modal', 'true');
-            modal.setAttribute('aria-label', 'هناك تحديث جديد');
-            modal.className = 'hse-update-message-modal';
-            modal.style.cssText = 'position:fixed;inset:0;z-index:999999;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.5);padding:1rem;';
-            modal.innerHTML = `
-                <div class="hse-update-message-card" style="background:var(--bg-primary,#fff);color:var(--text-primary,#111);max-width:420px;width:100%;border-radius:16px;box-shadow:0 25px 50px -12px rgba(0,0,0,0.25);padding:1.5rem;text-align:right;">
-                    <div style="display:flex;align-items:center;gap:0.75rem;margin-bottom:1rem;">
-                        <span style="width:48px;height:48px;border-radius:50%;background:var(--primary-color,#2563eb);color:#fff;display:flex;align-items:center;justify-content:center;"><i class="fas fa-sync-alt" style="font-size:1.25rem;"></i></span>
-                        <h2 style="margin:0;font-size:1.25rem;font-weight:700;">هناك تحديث جديد</h2>
-                    </div>
-                    <p style="margin:0 0 0.5rem;font-size:0.9rem;color:var(--gray-600,#4b5563);">تم إجراء تحديث على التطبيق — الإصدار: <strong>${(typeof Utils !== 'undefined' && Utils.escapeHTML) ? Utils.escapeHTML(currentVersion) : currentVersion}</strong></p>
-                    <div class="hse-update-message-body" style="margin:1rem 0;font-size:0.95rem;line-height:1.6;">${safeMessage}</div>
-                    <div style="display:flex;gap:0.5rem;margin-top:1rem;flex-direction:row-reverse;">
-                        <button type="button" id="hse-update-message-reload" class="btn-primary" style="flex:1;">تحديث الصفحة الآن</button>
-                        <button type="button" id="hse-update-message-later" class="btn-secondary" style="flex:1;">لاحقاً</button>
-                    </div>
-                </div>`;
-            document.body.appendChild(modal);
-
-            if (typeof Notification !== 'undefined' && Notification.info) {
-                Notification.info('هناك تحديث جديد متاح للتطبيق — يرجى تحديث الصفحة للحصول على أحدث النسخة.', { duration: 6000 });
-            }
-
-            const onReload = () => {
-                try { if (typeof localStorage !== 'undefined') localStorage.setItem(storageKey, currentVersion); } catch (e) {}
-                if (modal && modal.parentNode) modal.remove();
-                window.location.reload();
-            };
-            const onLater = () => {
-                try { if (typeof localStorage !== 'undefined') localStorage.setItem(storageKey, currentVersion); } catch (e) {}
-                if (modal && modal.parentNode) modal.remove();
-            };
-            const btnReload = modal.querySelector('#hse-update-message-reload');
-            const btnLater = modal.querySelector('#hse-update-message-later');
-            if (btnReload) btnReload.addEventListener('click', onReload);
-            if (btnLater) btnLater.addEventListener('click', onLater);
-            modal.addEventListener('click', (e) => { if (e.target === modal) onLater(); });
+            this._showUpdateModal(currentVersion);
         } catch (e) {
-            if (AppState.debugMode) Utils.safeWarn('⚠️ خطأ في عرض رسالة التحديث:', e);
+            if (AppState.debugMode && typeof Utils !== 'undefined' && Utils.safeWarn) Utils.safeWarn('⚠️ خطأ في عرض رسالة التحديث:', e);
         }
     },
 
@@ -2654,6 +2683,20 @@ window.UI = {
         setTimeout(() => {
             if (typeof this._showUpdateMessageIfNeeded === 'function') this._showUpdateMessageIfNeeded();
         }, 800);
+
+        // التحقق من إصدار الخادم (Vercel) — بعد النشر يظهر إشعار "هناك تحديث جديد" حتى مع كاش المتصفح
+        const runServerVersionCheck = () => {
+            if (typeof this._checkServerVersion === 'function') this._checkServerVersion();
+        };
+        setTimeout(runServerVersionCheck, 2000);
+        if (typeof setInterval !== 'undefined') {
+            setInterval(runServerVersionCheck, 5 * 60 * 1000);
+        }
+        if (typeof document !== 'undefined' && document.addEventListener) {
+            document.addEventListener('visibilitychange', () => {
+                if (document.visibilityState === 'visible') runServerVersionCheck();
+            });
+        }
 
         // تم نقل المزامنة إلى Auth.login لتجنب المزامنات المكررة
         // المزامنة تحدث مرة واحدة فقط بعد تسجيل الدخول في Auth.login
