@@ -5492,6 +5492,8 @@
 </head>
 
 <body class="font-cairo bg-gray-50" data-theme="light">
+    <!-- رابط تخطي للمحتوى الرئيسي (إمكانية الوصول) -->
+    <a href="#main-content" class="skip-link">تخطي إلى المحتوى الرئيسي</a>
     <!-- ⚡ Additional Protection at Body Start ⚡ -->
     <script>
         // قمع إضافي في بداية body
@@ -5908,7 +5910,7 @@
             </header>
 
             <!-- Main Content -->
-            <main class="main-content">
+            <main id="main-content" class="main-content" tabindex="-1">
                 <!-- Company Logo Header -->
                 <div id="company-logo-header" class="company-logo-header"
                     style="display: none; position: fixed; top: 0; right: var(--sidebar-width); left: 0; height: 70px; background: var(--card-bg); border-bottom: 2px solid var(--border-color); z-index: 40; padding: 10px 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); display: flex; align-items: center; justify-content: space-between; transition: background-color 0.3s ease;">
