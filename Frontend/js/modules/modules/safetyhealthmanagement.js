@@ -2492,127 +2492,8 @@ const SafetyHealthManagement = {
                     return;
                 }
 
-                // حساب مؤشرات الأداء بشكل صحيح
-                const inspectionsProgress = (kpi.targetInspections || 20) > 0 
-                    ? Math.min(((kpi.inspectionsCount || 0) / (kpi.targetInspections || 20)) * 100, 100) 
-                    : 0;
-                // حساب نسبة الإجراءات المغلقة بشكل صحيح (نسبة مئوية من الهدف)
-                const actionsProgress = (kpi.targetActionsClosure || 80);
-                const observationsProgress = (kpi.targetObservations || 15) > 0 
-                    ? Math.min(((kpi.observationsCount || 0) / (kpi.targetObservations || 15)) * 100, 100) 
-                    : 0;
-                const trainingsProgress = (kpi.targetTrainings || 2) > 0 
-                    ? Math.min(((kpi.trainingsCount || 0) / (kpi.targetTrainings || 2)) * 100, 100) 
-                    : 0;
-                // التأكد من أن commitmentProgress رقم وليس كائن
-                const commitmentProgress = typeof kpi.commitmentRate === 'number' ? kpi.commitmentRate : 
-                    (typeof kpi.commitmentRate === 'object' && kpi.commitmentRate !== null ? 0 : 
-                    (parseFloat(kpi.commitmentRate) || 0));
+                this.renderKPIs(kpi, container);
 
-                container.innerHTML = `
-                    <div class="mb-4 flex justify-end">
-                        <button onclick="SafetyHealthManagement.editKPIs('${kpi.id || ''}', '${memberId}')" class="btn-primary btn-sm">
-                            <i class="fas fa-edit ml-2"></i>
-                            تعديل المؤشرات يدوياً
-                        </button>
-                    </div>
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
-                        <div class="kpi-card success">
-                            <div class="flex items-center justify-between mb-2">
-                                <h3 class="font-semibold">الجولات التفتيشية</h3>
-                                <i class="fas fa-clipboard-check text-2xl"></i>
-                            </div>
-                            <p class="text-3xl font-bold mb-1">${kpi.inspectionsCount || 0}</p>
-                            <p class="text-sm opacity-90 mb-2">الهدف: ${kpi.targetInspections || 20}</p>
-                            <div class="w-full bg-white bg-opacity-30 rounded-full h-2">
-                                <div class="bg-white rounded-full h-2" style="width: ${inspectionsProgress}%"></div>
-                            </div>
-                        </div>
-                        <div class="kpi-card warning">
-                            <div class="flex items-center justify-between mb-2">
-                                <h3 class="font-semibold">الإجراءات المغلقة</h3>
-                                <i class="fas fa-check-circle text-2xl"></i>
-                            </div>
-                            <p class="text-3xl font-bold mb-1">${kpi.closedActionsCount || 0}</p>
-                            <p class="text-sm opacity-90 mb-2">نسبة الإغلاق المستهدفة: ${kpi.targetActionsClosure || 80}%</p>
-                            <div class="w-full bg-white bg-opacity-30 rounded-full h-2">
-                                <div class="bg-white rounded-full h-2" style="width: ${Math.min(actionsProgress, 100)}%"></div>
-                            </div>
-                        </div>
-                        <div class="kpi-card info">
-                            <div class="flex items-center justify-between mb-2">
-                                <h3 class="font-semibold">الملاحظات</h3>
-                                <i class="fas fa-eye text-2xl"></i>
-                            </div>
-                            <p class="text-3xl font-bold mb-1">${kpi.observationsCount || 0}</p>
-                            <p class="text-sm opacity-90 mb-2">الهدف: ${kpi.targetObservations || 15}</p>
-                            <div class="w-full bg-white bg-opacity-30 rounded-full h-2">
-                                <div class="bg-white rounded-full h-2" style="width: ${observationsProgress}%"></div>
-                            </div>
-                        </div>
-                        <div class="kpi-card">
-                            <div class="flex items-center justify-between mb-2">
-                                <h3 class="font-semibold">التدريبات</h3>
-                                <i class="fas fa-graduation-cap text-2xl"></i>
-                            </div>
-                            <p class="text-3xl font-bold mb-1">${kpi.trainingsCount || 0}</p>
-                            <p class="text-sm opacity-90 mb-2">الهدف: ${kpi.targetTrainings || 2}</p>
-                            <div class="w-full bg-white bg-opacity-30 rounded-full h-2">
-                                <div class="bg-white rounded-full h-2" style="width: ${trainingsProgress}%"></div>
-                            </div>
-                        </div>
-                        <div class="kpi-card ${commitmentProgress >= 95 ? 'success' : 'warning'}">
-                            <div class="flex items-center justify-between mb-2">
-                                <h3 class="font-semibold">نسبة الالتزام</h3>
-                                <i class="fas fa-percentage text-2xl"></i>
-                            </div>
-                            <p class="text-3xl font-bold mb-1">${commitmentProgress.toFixed(1)}%</p>
-                            <p class="text-sm opacity-90 mb-2">الهدف: ${kpi.targetCommitment || 95}%</p>
-                            <div class="w-full bg-white bg-opacity-30 rounded-full h-2">
-                                <div class="bg-white rounded-full h-2" style="width: ${commitmentProgress}%"></div>
-                            </div>
-                        </div>
-                        ${kpi.incidentsHandledCount !== undefined ? `
-                        <div class="kpi-card danger">
-                            <div class="flex items-center justify-between mb-2">
-                                <h3 class="font-semibold">الحوادث المعالجة</h3>
-                                <i class="fas fa-exclamation-triangle text-2xl"></i>
-                            </div>
-                            <p class="text-3xl font-bold">${kpi.incidentsHandledCount || 0}</p>
-                        </div>
-                        ` : ''}
-                        ${kpi.nearMissCount !== undefined ? `
-                        <div class="kpi-card warning">
-                            <div class="flex items-center justify-between mb-2">
-                                <h3 class="font-semibold">Near Miss</h3>
-                                <i class="fas fa-exclamation-circle text-2xl"></i>
-                            </div>
-                            <p class="text-3xl font-bold">${kpi.nearMissCount || 0}</p>
-                        </div>
-                        ` : ''}
-                        ${kpi.ptwCount !== undefined ? `
-                        <div class="kpi-card info">
-                            <div class="flex items-center justify-between mb-2">
-                                <h3 class="font-semibold">PTW المعالجة</h3>
-                                <i class="fas fa-file-alt text-2xl"></i>
-                            </div>
-                            <p class="text-3xl font-bold">${kpi.ptwCount || 0}</p>
-                        </div>
-                        ` : ''}
-                    </div>
-                    <!-- Chart Visualization -->
-                    <div class="bg-white border border-gray-200 rounded-lg p-6 mt-6">
-                        <h3 class="font-semibold text-gray-700 mb-4">مقارنة الأداء مع الأهداف</h3>
-                        <div class="space-y-4">
-                            ${this.renderKPIChartBar('الجولات التفتيشية', kpi.inspectionsCount || 0, kpi.targetInspections || 20)}
-                            ${this.renderKPIChartBar('الإجراءات المغلقة', kpi.closedActionsCount || 0, Math.max(kpi.closedActionsCount || 0, 10))}
-                            ${this.renderKPIChartBar('الملاحظات', kpi.observationsCount || 0, kpi.targetObservations || 15)}
-                            ${this.renderKPIChartBar('التدريبات', kpi.trainingsCount || 0, kpi.targetTrainings || 2)}
-                        </div>
-                    </div>
-                    ${kpi.isManual ? '<div class="mt-2 text-sm text-yellow-600"><i class="fas fa-info-circle ml-1"></i>تم تعديل هذه المؤشرات يدوياً</div>' : ''}
-                `;
-                
                 // حفظ في Cache
                 this.cache.kpis.set(cacheKey, {
                     data: kpi,
@@ -2697,107 +2578,90 @@ const SafetyHealthManagement = {
             (parseFloat(kpi.commitmentRate) || 0));
         
         container.innerHTML = `
-            <div class="mb-4 flex justify-end">
+            <style>
+                #kpis-container .shm-kpi-card { min-width: 0; overflow: hidden; padding: 1.25rem; border-radius: 12px; min-height: 140px; display: flex; flex-direction: column; }
+                #kpis-container .shm-kpi-card .shm-kpi-title { font-size: 0.95rem; font-weight: 600; margin-bottom: 0.5rem; word-break: break-word; line-height: 1.35; min-height: 2.7em; }
+                #kpis-container .shm-kpi-card .shm-kpi-value { font-size: 1.75rem; font-weight: 700; margin-bottom: 0.25rem; }
+                #kpis-container .shm-kpi-bar-wrap { margin-top: auto; }
+                #kpis-container .shm-kpi-chart-row { padding: 1rem 0; border-bottom: 1px solid #e5e7eb; min-height: 72px; }
+                #kpis-container .shm-kpi-chart-row:last-child { border-bottom: none; }
+            </style>
+            <div class="mb-4 flex flex-wrap justify-end gap-2">
                 <button onclick="SafetyHealthManagement.editKPIs('${kpi.id || ''}', '${kpi.memberId || ''}')" class="btn-primary btn-sm">
                     <i class="fas fa-edit ml-2"></i>
                     تعديل المؤشرات يدوياً
                 </button>
             </div>
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
-                <div class="kpi-card success">
-                    <div class="flex items-center justify-between mb-2">
-                        <h3 class="font-semibold">الجولات التفتيشية</h3>
-                        <i class="fas fa-clipboard-check text-2xl"></i>
-                    </div>
-                    <p class="text-3xl font-bold mb-1">${kpi.inspectionsCount || 0}</p>
-                    <p class="text-sm opacity-90 mb-2">الهدف: ${kpi.targetInspections || 20}</p>
-                    <div class="w-full bg-white bg-opacity-30 rounded-full h-2">
-                        <div class="bg-white rounded-full h-2" style="width: ${inspectionsProgress}%"></div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 mb-6">
+                <div class="kpi-card success shm-kpi-card">
+                    <h3 class="shm-kpi-title text-white">الجولات التفتيشية</h3>
+                    <p class="shm-kpi-value text-white">${kpi.inspectionsCount || 0}</p>
+                    <p class="text-sm text-white text-opacity-90 mb-2">الهدف: ${kpi.targetInspections || 20}</p>
+                    <div class="shm-kpi-bar-wrap w-full bg-white bg-opacity-30 rounded-full h-2.5">
+                        <div class="bg-white rounded-full h-2.5 transition-all duration-300" style="width: ${inspectionsProgress}%"></div>
                     </div>
                 </div>
-                <div class="kpi-card warning">
-                    <div class="flex items-center justify-between mb-2">
-                        <h3 class="font-semibold">الإجراءات المغلقة</h3>
-                        <i class="fas fa-check-circle text-2xl"></i>
-                    </div>
-                    <p class="text-3xl font-bold mb-1">${kpi.closedActionsCount || 0}</p>
-                    <p class="text-sm opacity-90 mb-2">نسبة الإغلاق المستهدفة: ${kpi.targetActionsClosure || 80}%</p>
-                    <div class="w-full bg-white bg-opacity-30 rounded-full h-2">
-                        <div class="bg-white rounded-full h-2" style="width: ${Math.min(actionsProgress, 100)}%"></div>
+                <div class="kpi-card warning shm-kpi-card">
+                    <h3 class="shm-kpi-title text-white">الإجراءات المغلقة</h3>
+                    <p class="shm-kpi-value text-white">${kpi.closedActionsCount || 0}</p>
+                    <p class="text-sm text-white text-opacity-90 mb-2">نسبة الإغلاق: ${kpi.targetActionsClosure || 80}%</p>
+                    <div class="shm-kpi-bar-wrap w-full bg-white bg-opacity-30 rounded-full h-2.5">
+                        <div class="bg-white rounded-full h-2.5 transition-all duration-300" style="width: ${Math.min(actionsProgress, 100)}%"></div>
                     </div>
                 </div>
-                <div class="kpi-card info">
-                    <div class="flex items-center justify-between mb-2">
-                        <h3 class="font-semibold">الملاحظات</h3>
-                        <i class="fas fa-eye text-2xl"></i>
-                    </div>
-                    <p class="text-3xl font-bold mb-1">${kpi.observationsCount || 0}</p>
-                    <p class="text-sm opacity-90 mb-2">الهدف: ${kpi.targetObservations || 15}</p>
-                    <div class="w-full bg-white bg-opacity-30 rounded-full h-2">
-                        <div class="bg-white rounded-full h-2" style="width: ${observationsProgress}%"></div>
+                <div class="kpi-card info shm-kpi-card">
+                    <h3 class="shm-kpi-title text-white">الملاحظات</h3>
+                    <p class="shm-kpi-value text-white">${kpi.observationsCount || 0}</p>
+                    <p class="text-sm text-white text-opacity-90 mb-2">الهدف: ${kpi.targetObservations || 15}</p>
+                    <div class="shm-kpi-bar-wrap w-full bg-white bg-opacity-30 rounded-full h-2.5">
+                        <div class="bg-white rounded-full h-2.5 transition-all duration-300" style="width: ${observationsProgress}%"></div>
                     </div>
                 </div>
-                <div class="kpi-card">
-                    <div class="flex items-center justify-between mb-2">
-                        <h3 class="font-semibold">التدريبات</h3>
-                        <i class="fas fa-graduation-cap text-2xl"></i>
-                    </div>
-                    <p class="text-3xl font-bold mb-1">${kpi.trainingsCount || 0}</p>
-                    <p class="text-sm opacity-90 mb-2">الهدف: ${kpi.targetTrainings || 2}</p>
-                    <div class="w-full bg-white bg-opacity-30 rounded-full h-2">
-                        <div class="bg-white rounded-full h-2" style="width: ${trainingsProgress}%"></div>
+                <div class="kpi-card shm-kpi-card">
+                    <h3 class="shm-kpi-title text-white">التدريبات</h3>
+                    <p class="shm-kpi-value text-white">${kpi.trainingsCount || 0}</p>
+                    <p class="text-sm text-white text-opacity-90 mb-2">الهدف: ${kpi.targetTrainings || 2}</p>
+                    <div class="shm-kpi-bar-wrap w-full bg-white bg-opacity-30 rounded-full h-2.5">
+                        <div class="bg-white rounded-full h-2.5 transition-all duration-300" style="width: ${trainingsProgress}%"></div>
                     </div>
                 </div>
-                <div class="kpi-card ${commitmentProgress >= 95 ? 'success' : 'warning'}">
-                    <div class="flex items-center justify-between mb-2">
-                        <h3 class="font-semibold">نسبة الالتزام</h3>
-                        <i class="fas fa-percentage text-2xl"></i>
-                    </div>
-                    <p class="text-3xl font-bold mb-1">${commitmentProgress.toFixed(1)}%</p>
-                    <p class="text-sm opacity-90 mb-2">الهدف: ${kpi.targetCommitment || 95}%</p>
-                    <div class="w-full bg-white bg-opacity-30 rounded-full h-2">
-                        <div class="bg-white rounded-full h-2" style="width: ${commitmentProgress}%"></div>
+                <div class="kpi-card ${commitmentProgress >= 95 ? 'success' : 'warning'} shm-kpi-card">
+                    <h3 class="shm-kpi-title text-white">نسبة الالتزام</h3>
+                    <p class="shm-kpi-value text-white">${commitmentProgress.toFixed(1)}%</p>
+                    <p class="text-sm text-white text-opacity-90 mb-2">الهدف: ${kpi.targetCommitment || 95}%</p>
+                    <div class="shm-kpi-bar-wrap w-full bg-white bg-opacity-30 rounded-full h-2.5">
+                        <div class="bg-white rounded-full h-2.5 transition-all duration-300" style="width: ${commitmentProgress}%"></div>
                     </div>
                 </div>
                 ${kpi.incidentsHandledCount !== undefined ? `
-                <div class="kpi-card danger">
-                    <div class="flex items-center justify-between mb-2">
-                        <h3 class="font-semibold">الحوادث المعالجة</h3>
-                        <i class="fas fa-exclamation-triangle text-2xl"></i>
-                    </div>
-                    <p class="text-3xl font-bold">${kpi.incidentsHandledCount || 0}</p>
+                <div class="kpi-card danger shm-kpi-card">
+                    <h3 class="shm-kpi-title text-white">الحوادث المعالجة</h3>
+                    <p class="shm-kpi-value text-white">${kpi.incidentsHandledCount || 0}</p>
                 </div>
                 ` : ''}
                 ${kpi.nearMissCount !== undefined ? `
-                <div class="kpi-card warning">
-                    <div class="flex items-center justify-between mb-2">
-                        <h3 class="font-semibold">Near Miss</h3>
-                        <i class="fas fa-exclamation-circle text-2xl"></i>
-                    </div>
-                    <p class="text-3xl font-bold">${kpi.nearMissCount || 0}</p>
+                <div class="kpi-card warning shm-kpi-card">
+                    <h3 class="shm-kpi-title text-white">Near Miss</h3>
+                    <p class="shm-kpi-value text-white">${kpi.nearMissCount || 0}</p>
                 </div>
                 ` : ''}
                 ${kpi.ptwCount !== undefined ? `
-                <div class="kpi-card info">
-                    <div class="flex items-center justify-between mb-2">
-                        <h3 class="font-semibold">PTW المعالجة</h3>
-                        <i class="fas fa-file-alt text-2xl"></i>
-                    </div>
-                    <p class="text-3xl font-bold">${kpi.ptwCount || 0}</p>
+                <div class="kpi-card info shm-kpi-card">
+                    <h3 class="shm-kpi-title text-white">PTW المعالجة</h3>
+                    <p class="shm-kpi-value text-white">${kpi.ptwCount || 0}</p>
                 </div>
                 ` : ''}
             </div>
-            <!-- Chart Visualization -->
-            <div class="bg-white border border-gray-200 rounded-lg p-6 mt-6">
-                <h3 class="font-semibold text-gray-700 mb-4">مقارنة الأداء مع الأهداف</h3>
-                <div class="space-y-4">
+            <div class="bg-white border border-gray-200 rounded-xl p-6 mt-6 shadow-sm">
+                <h3 class="font-semibold text-gray-800 mb-5 text-lg">مقارنة الأداء مع الأهداف</h3>
+                <div class="space-y-0 divide-y divide-gray-100">
                     ${this.renderKPIChartBar('الجولات التفتيشية', kpi.inspectionsCount || 0, kpi.targetInspections || 20)}
                     ${this.renderKPIChartBar('الإجراءات المغلقة', kpi.closedActionsCount || 0, Math.max(kpi.closedActionsCount || 0, 10))}
                     ${this.renderKPIChartBar('الملاحظات', kpi.observationsCount || 0, kpi.targetObservations || 15)}
                     ${this.renderKPIChartBar('التدريبات', kpi.trainingsCount || 0, kpi.targetTrainings || 2)}
                 </div>
             </div>
-            ${kpi.isManual ? '<div class="mt-2 text-sm text-yellow-600"><i class="fas fa-info-circle ml-1"></i>تم تعديل هذه المؤشرات يدوياً</div>' : ''}
+            ${kpi.isManual ? '<div class="mt-4 text-sm text-amber-600 flex items-center gap-1"><i class="fas fa-info-circle"></i><span>تم تعديل هذه المؤشرات يدوياً</span></div>' : ''}
         `;
     },
 
@@ -3037,16 +2901,16 @@ const SafetyHealthManagement = {
     // ===== Helper Methods =====
     renderKPIChartBar(label, current, target) {
         const percentage = target > 0 ? Math.min((current / target) * 100, 100) : 0;
-        const color = percentage >= 80 ? 'bg-green-500' : percentage >= 50 ? 'bg-yellow-500' : 'bg-red-500';
+        const color = percentage >= 80 ? 'bg-green-500' : percentage >= 50 ? 'bg-amber-500' : 'bg-red-500';
         return `
-            <div>
-                <div class="flex justify-between text-sm mb-1">
-                    <span class="font-medium text-gray-700">${label}</span>
-                    <span class="text-gray-600">${current} / ${target}</span>
+            <div class="shm-kpi-chart-row">
+                <div class="flex flex-wrap items-center justify-between gap-2 mb-2">
+                    <span class="font-semibold text-gray-800">${Utils.escapeHTML(label)}</span>
+                    <span class="text-gray-500 text-sm">${current} / ${target}</span>
                 </div>
-                <div class="w-full bg-gray-200 rounded-full h-4">
-                    <div class="${color} h-4 rounded-full flex items-center justify-end pr-2" style="width: ${percentage}%">
-                        <span class="text-xs text-white font-semibold">${percentage.toFixed(0)}%</span>
+                <div class="w-full bg-gray-200 rounded-full h-5 overflow-hidden">
+                    <div class="${color} h-5 rounded-full flex items-center justify-end pr-2 transition-all duration-300" style="min-width: ${percentage > 0 ? '2rem' : '0'}; width: ${percentage}%">
+                        ${percentage > 0 ? `<span class="text-xs text-white font-bold">${percentage.toFixed(0)}%</span>` : ''}
                     </div>
                 </div>
             </div>
@@ -3566,16 +3430,16 @@ const SafetyHealthManagement = {
 
     renderKPIChartBar(label, current, target) {
         const percentage = target > 0 ? Math.min((current / target) * 100, 100) : 0;
-        const color = percentage >= 80 ? 'bg-green-500' : percentage >= 50 ? 'bg-yellow-500' : 'bg-red-500';
+        const color = percentage >= 80 ? 'bg-green-500' : percentage >= 50 ? 'bg-amber-500' : 'bg-red-500';
         return `
-            <div>
-                <div class="flex justify-between text-sm mb-1">
-                    <span class="font-medium text-gray-700">${label}</span>
-                    <span class="text-gray-600">${current} / ${target}</span>
+            <div class="shm-kpi-chart-row">
+                <div class="flex flex-wrap items-center justify-between gap-2 mb-2">
+                    <span class="font-semibold text-gray-800">${Utils.escapeHTML(label)}</span>
+                    <span class="text-gray-500 text-sm">${current} / ${target}</span>
                 </div>
-                <div class="w-full bg-gray-200 rounded-full h-4">
-                    <div class="${color} h-4 rounded-full flex items-center justify-end pr-2" style="width: ${percentage}%">
-                        <span class="text-xs text-white font-semibold">${percentage.toFixed(0)}%</span>
+                <div class="w-full bg-gray-200 rounded-full h-5 overflow-hidden">
+                    <div class="${color} h-5 rounded-full flex items-center justify-end pr-2 transition-all duration-300" style="min-width: ${percentage > 0 ? '2rem' : '0'}; width: ${percentage}%">
+                        ${percentage > 0 ? `<span class="text-xs text-white font-bold">${percentage.toFixed(0)}%</span>` : ''}
                     </div>
                 </div>
             </div>
