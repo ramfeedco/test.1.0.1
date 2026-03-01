@@ -5489,37 +5489,6 @@
                    base-uri 'self';
                    form-action 'self';">
 
-    <!-- ✅ دالة فتح/إغلاق إشعارات القائمة الجانبية -->
-    <script>
-        window.toggleSidebarNotifications = function() {
-            console.log('🔔 toggleSidebarNotifications called!');
-            var dropdown = document.getElementById('notifications-dropdown');
-            var emptyMsg = document.getElementById('notifications-empty');
-            
-            if (!dropdown) {
-                console.log('❌ Dropdown not found!');
-                return;
-            }
-            
-            var isVisible = dropdown.style.display === 'flex';
-            console.log('🔔 Current state: isVisible =', isVisible);
-            
-            if (isVisible) {
-                // إخفاء
-                dropdown.style.display = 'none';
-                console.log('🔔 Dropdown HIDDEN');
-            } else {
-                // إظهار
-                dropdown.style.cssText = 'display: flex !important; visibility: visible !important; opacity: 1 !important; position: fixed !important; z-index: 99999 !important; top: 100px !important; left: 50% !important; transform: translateX(-50%) !important; width: 380px !important; max-width: 90vw !important; background: var(--card-bg, #ffffff) !important; border-radius: 12px !important; box-shadow: 0 8px 32px rgba(0,0,0,0.25) !important; flex-direction: column !important; border: 1px solid var(--border-color, #e5e7eb) !important;';
-                
-                // إظهار رسالة "لا توجد إشعارات" إذا كانت القائمة فارغة
-                if (emptyMsg) {
-                    emptyMsg.style.display = 'flex';
-                }
-                console.log('🔔 Dropdown SHOWN');
-            }
-        };
-    </script>
 </head>
 
 <body class="font-cairo bg-gray-50" data-theme="light">

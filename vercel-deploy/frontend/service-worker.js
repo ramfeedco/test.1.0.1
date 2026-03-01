@@ -14,8 +14,8 @@
     console.trace = noop;
 })();
 
-// Bump cache version to force clients to pick up latest JS/CSS updates
-const CACHE_VERSION = 'hse-app-v1.0.6';
+// Bump cache version to force clients to pick up latest JS/CSS updates (زيادة عند كل نشر لظهور التحديثات)
+const CACHE_VERSION = 'hse-app-v1.0.7';
 const CACHE_NAME = `hse-cache-${CACHE_VERSION}`;
 
 // تحديد المسار الأساسي بناءً على موقع Service Worker
@@ -298,9 +298,11 @@ self.addEventListener('fetch', (event) => {
         
         // تحديد الاستراتيجية بناءً على نوع الملف
         let strategy;
-        
-        if (isCoreFile(url.pathname)) {
-            // الملفات الأساسية: التخزين المؤقت أولاً
+        // index.html وملفات الـ shell الحرجة: الشبكة أولاً لضمان ظهور التحديثات فوراً بعد النشر
+        if (isShellOrCriticalFile(url.pathname)) {
+            strategy = CACHE_STRATEGIES.NETWORK_FIRST;
+        } else if (isCoreFile(url.pathname)) {
+            // الملفات الأساسية الأخرى: التخزين المؤقت أولاً
             strategy = CACHE_STRATEGIES.CACHE_FIRST;
         } else if (isModuleFile(url.pathname)) {
             // الموديولات: الشبكة أولاً (للحصول على أحدث نسخة تلقائياً)
@@ -628,6 +630,15 @@ async function networkOnly(request) {
             statusText: 'Network Error'
         });
     }
+}
+
+/**
+ * التحقق من أن الملف من نوع shell/حرج (index.html أو JS الأساسي) لاستخدام الشبكة أولاً لظهور التحديثات
+ */
+function isShellOrCriticalFile(pathname) {
+    const p = pathname.replace(BASE_PATH, '') || pathname;
+    return p === '/' || p === '/index.html' || p.endsWith('/index.html') ||
+           p.endsWith('/js/app-ui.js') || p.endsWith('/js/app-bootstrap.js') || p.endsWith('/js/app-utils.js');
 }
 
 /**
