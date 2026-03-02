@@ -153,11 +153,6 @@ window.UI = {
         // لا حاجة لإعادة تهيئة الأحداث هنا لتجنب التعارض
         // إذا كان login-init-fixed.js محملاً، سيعيد تهيئة الأحداث تلقائياً
         if (AppState.debugMode) Utils.safeLog('✅ تم عرض شاشة تسجيل الدخول - تم مسح الحقول وإعادة تعيين الزر');
-
-        // إشعار التحديث: عند عرض شاشة الدخول، التحقق من وجود إصدار جديد لإظهار رسالة للمستخدمين العائدين
-        setTimeout(() => {
-            if (typeof this._showUpdateMessageIfNeeded === 'function') this._showUpdateMessageIfNeeded();
-        }, 500);
     },
 
     renderSummary() {
@@ -2630,8 +2625,8 @@ window.UI = {
     },
 
     /**
-     * عرض رسالة "هناك تحديث جديد" عند تسجيل الدخول عندما يُجرى تحديث على التطبيق (تغيّر إصدار appVersion).
-     * تظهر للمستخدمين الذين كانوا يستخدمون إصداراً سابقاً فقط — عند كل إضافة أو تحديث جديد، غيّر appVersion في app-utils.js و version.json.
+     * عرض رسالة "هناك تحديث جديد" عند تسجيل الدخول — يُعرض فقط إذا كان appVersion أحدث فعلاً من آخر إصدار رآه المستخدم.
+     * إذا كان lastSeen في localStorage أحدث من currentVersion (بسبب بقاء JS قديم في الكاش) → لا تعرض شيئاً.
      */
     _showUpdateMessageIfNeeded() {
         try {
@@ -2643,7 +2638,9 @@ window.UI = {
                 try { localStorage.setItem(storageKey, currentVersion); } catch (e) {}
                 return;
             }
-            if (lastSeen === currentVersion) return;
+            // عرض فقط إذا كان الإصدار الحالي أحدث تسلسلياً من آخر إصدار رآه المستخدم
+            if (typeof this._compareVersions !== 'function') return;
+            if (this._compareVersions(currentVersion, lastSeen) <= 0) return;
             this._showUpdateModal(currentVersion);
         } catch (e) {
             if (AppState.debugMode && typeof Utils !== 'undefined' && Utils.safeWarn) Utils.safeWarn('⚠️ خطأ في عرض رسالة التحديث:', e);
@@ -2723,15 +2720,14 @@ window.UI = {
             if (typeof this._showUpdateMessageIfNeeded === 'function') this._showUpdateMessageIfNeeded();
         }, 800);
 
-        // التحقق من إصدار الخادم (Vercel) — بعد النشر يظهر إشعار "هناك تحديث جديد" حتى مع كاش المتصفح
-        const runServerVersionCheck = () => {
-            if (typeof this._checkServerVersion === 'function') this._checkServerVersion();
-        };
-        setTimeout(runServerVersionCheck, 2000);
-        if (typeof setInterval !== 'undefined') {
+        // التحقق من إصدار الخادم (Vercel) — يُهيَّأ مرة واحدة فقط طوال عمر الصفحة لمنع تراكم المؤقتات والمستمعين
+        if (!AppState._updateCheckInitialized) {
+            AppState._updateCheckInitialized = true;
+            const runServerVersionCheck = () => {
+                if (typeof this._checkServerVersion === 'function') this._checkServerVersion();
+            };
+            setTimeout(runServerVersionCheck, 2000);
             setInterval(runServerVersionCheck, 5 * 60 * 1000);
-        }
-        if (typeof document !== 'undefined' && document.addEventListener) {
             document.addEventListener('visibilitychange', () => {
                 if (document.visibilityState === 'visible') runServerVersionCheck();
             });
