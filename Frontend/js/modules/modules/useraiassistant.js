@@ -91,13 +91,20 @@ const UserAIAssistant = {
      * تهيئة المساعد
      */
     init() {
+        // منع التهيئة المزدوجة — إذا تم تهيئة المساعد مسبقاً نتجاهل الاستدعاء
+        if (this._initialized) return;
+        this._initialized = true;
+
         // إخفاء الزر في شاشة تسجيل الدخول
         const loginScreen = document.getElementById('login-screen');
         const mainApp = document.getElementById('main-app');
         const assistantBtn = document.getElementById('user-ai-assistant-btn');
         const chatWindow = document.getElementById('user-ai-assistant-chat');
 
-        if (!assistantBtn || !chatWindow) return;
+        if (!assistantBtn || !chatWindow) {
+            this._initialized = false; // السماح بإعادة المحاولة إذا لم تُوجد العناصر بعد
+            return;
+        }
 
         // إظهار/إخفاء الزر حسب حالة التطبيق
         const updateButtonVisibility = () => {
@@ -1104,6 +1111,34 @@ const UserAIAssistant = {
         }
     }
 };
+
+// ===== Auto-init: تهيئة تلقائية عند تحميل الموديول =====
+// يضمن تسجيل click listener حتى عند الدخول بجلسة محفوظة (session restore)
+(function () {
+    'use strict';
+    try {
+        const tryAutoInit = function () {
+            if (!UserAIAssistant || UserAIAssistant._initialized) return;
+            const mainApp = document.getElementById('main-app');
+            if (mainApp && mainApp.style.display !== 'none') {
+                UserAIAssistant.init();
+            } else if (mainApp) {
+                // انتظار حتى يظهر التطبيق الرئيسي
+                const obs = new MutationObserver(function (_, observer) {
+                    if (mainApp.style.display !== 'none') {
+                        observer.disconnect();
+                        UserAIAssistant.init();
+                    }
+                });
+                obs.observe(mainApp, { attributes: true, attributeFilter: ['style'] });
+            }
+        };
+        // تأخير بسيط لضمان اكتمال تحميل DOM
+        setTimeout(tryAutoInit, 300);
+    } catch (e) {
+        // تجاهل أخطاء التهيئة التلقائية
+    }
+})();
 
 // ===== Export module to global scope =====
 // تصدير الموديول إلى window فوراً لضمان توافره
