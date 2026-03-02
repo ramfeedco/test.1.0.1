@@ -2823,7 +2823,6 @@ const SafetyHealthManagement = {
                 </div>
             `;
         } finally {
-            Loading.hide();
             this.loadingStates.kpis = false;
         }
     },
@@ -3545,32 +3544,48 @@ const SafetyHealthManagement = {
         const memberSelect = document.getElementById('report-member-select');
         if (!memberSelect) return;
 
-        // التحقق من إمكانية الوصول للبيانات
         const accessMessage = this.getDataAccessMessage('generateSafetyTeamPerformanceReport', {});
         if (accessMessage) {
             memberSelect.innerHTML = `<option value="">${accessMessage}</option>`;
             const container = document.getElementById('reports-container');
-            if (container) {
-                container.innerHTML = `<div class="empty-state"><p class="text-gray-500">${accessMessage}</p></div>`;
-            }
+            if (container) container.innerHTML = `<div class="empty-state"><p class="text-gray-500">${accessMessage}</p></div>`;
             return;
         }
 
+        let members = this._getMembersFromCache();
+        if (members && members.length > 0) {
+            memberSelect.innerHTML = '<option value="">اختر عضو الفريق</option>' +
+                members.map(m => `<option value="${m.id}">${Utils.escapeHTML(m.name || '')}</option>`).join('');
+            document.getElementById('generate-report-btn')?.addEventListener('click', () => this.generateReport());
+        }
+
         try {
-            // Load team members for dropdown
-            const membersResponse = await GoogleIntegration.sendRequest({
-                action: 'getSafetyTeamMembers',
-                data: {}
-            });
+            const fetchPromise = GoogleIntegration.sendRequest({ action: 'getSafetyTeamMembers', data: {} });
+            let membersResponse;
+            try {
+                membersResponse = await this._raceWithTimeout(fetchPromise);
+            } catch (timeoutErr) {
+                if (timeoutErr && timeoutErr.timeout) {
+                    fetchPromise.then((r) => {
+                        if (r && r.success && r.data) {
+                            const m = Array.isArray(r.data) ? r.data : [];
+                            this.cache.members = m;
+                            this.cache.lastLoad = Date.now();
+                            const sel = document.getElementById('report-member-select');
+                            if (sel) sel.innerHTML = '<option value="">اختر عضو الفريق</option>' + m.map(x => `<option value="${x.id}">${Utils.escapeHTML(x.name || '')}</option>`).join('');
+                            document.getElementById('generate-report-btn')?.addEventListener('click', () => this.generateReport());
+                        }
+                    }).catch(() => {});
+                }
+                return;
+            }
 
-            if (membersResponse.success && membersResponse.data) {
-                const members = Array.isArray(membersResponse.data) ? membersResponse.data : [];
+            if (membersResponse && membersResponse.success && membersResponse.data) {
+                members = Array.isArray(membersResponse.data) ? membersResponse.data : [];
+                this.cache.members = members;
+                this.cache.lastLoad = Date.now();
                 memberSelect.innerHTML = '<option value="">اختر عضو الفريق</option>' +
-                    members.map(m => `
-                        <option value="${m.id}">${Utils.escapeHTML(m.name || '')}</option>
-                    `).join('');
-
-                // Setup event listener
+                    members.map(m => `<option value="${m.id}">${Utils.escapeHTML(m.name || '')}</option>`).join('');
                 document.getElementById('generate-report-btn')?.addEventListener('click', () => this.generateReport());
             }
         } catch (error) {
@@ -4198,45 +4213,72 @@ const SafetyHealthManagement = {
         `;
     },
 
+    _attachAttendanceListeners() {
+        const memberSelect = document.getElementById('attendance-member-select');
+        if (!memberSelect) return;
+        memberSelect.onchange = () => {
+            const memberId = memberSelect.value;
+            if (memberId) {
+                this.loadMemberAttendance(memberId);
+                this.loadMemberLeaves(memberId);
+            } else {
+                const al = document.getElementById('attendance-list');
+                const ll = document.getElementById('leaves-list');
+                if (al) al.innerHTML = '<div class="empty-state"><p class="text-gray-500">اختر عضو الفريق لعرض سجل الحضور</p></div>';
+                if (ll) ll.innerHTML = '<div class="empty-state"><p class="text-gray-500">اختر عضو الفريق لعرض سجل الإجازات</p></div>';
+            }
+        };
+        document.getElementById('add-attendance-btn')?.addEventListener('click', () => this.showAttendanceForm());
+        document.getElementById('add-leave-btn')?.addEventListener('click', () => this.showLeaveForm());
+        let reportBtn = memberSelect.parentElement?.querySelector('.btn-success');
+        if (!reportBtn) {
+            reportBtn = document.createElement('button');
+            reportBtn.className = 'btn-success btn-sm ml-2';
+            reportBtn.innerHTML = '<i class="fas fa-file-alt ml-2"></i>تقرير حضور/غياب';
+            reportBtn.addEventListener('click', () => this.generateAttendanceReport());
+            memberSelect.parentElement?.appendChild(reportBtn);
+        }
+    },
+
     async loadAttendance() {
         const memberSelect = document.getElementById('attendance-member-select');
         if (!memberSelect) return;
 
+        const members = this._getMembersFromCache();
+        if (members && members.length > 0) {
+            memberSelect.innerHTML = '<option value="">اختر عضو الفريق</option>' +
+                members.map(m => `<option value="${m.id}">${Utils.escapeHTML(m.name || '')}</option>`).join('');
+            this._attachAttendanceListeners();
+        }
+
         try {
-            // Load team members for dropdown
-            const membersResponse = await GoogleIntegration.sendRequest({
-                action: 'getSafetyTeamMembers',
-                data: {}
-            });
+            const fetchPromise = GoogleIntegration.sendRequest({ action: 'getSafetyTeamMembers', data: {} });
+            let membersResponse;
+            try {
+                membersResponse = await this._raceWithTimeout(fetchPromise);
+            } catch (timeoutErr) {
+                if (timeoutErr && timeoutErr.timeout) {
+                    fetchPromise.then((r) => {
+                        if (r && r.success && r.data) {
+                            const m = Array.isArray(r.data) ? r.data : [];
+                            this.cache.members = m;
+                            this.cache.lastLoad = Date.now();
+                            const sel = document.getElementById('attendance-member-select');
+                            if (sel) sel.innerHTML = '<option value="">اختر عضو الفريق</option>' + m.map(x => `<option value="${x.id}">${Utils.escapeHTML(x.name || '')}</option>`).join('');
+                            this._attachAttendanceListeners();
+                        }
+                    }).catch(() => {});
+                }
+                return;
+            }
 
-            if (membersResponse.success && membersResponse.data) {
-                const members = Array.isArray(membersResponse.data) ? membersResponse.data : [];
+            if (membersResponse && membersResponse.success && membersResponse.data) {
+                const m = Array.isArray(membersResponse.data) ? membersResponse.data : [];
+                this.cache.members = m;
+                this.cache.lastLoad = Date.now();
                 memberSelect.innerHTML = '<option value="">اختر عضو الفريق</option>' +
-                    members.map(m => `
-                        <option value="${m.id}">${Utils.escapeHTML(m.name || '')}</option>
-                    `).join('');
-
-                // Setup event listeners
-                memberSelect.addEventListener('change', () => {
-                    const memberId = memberSelect.value;
-                    if (memberId) {
-                        this.loadMemberAttendance(memberId);
-                        this.loadMemberLeaves(memberId);
-                    } else {
-                        document.getElementById('attendance-list').innerHTML = '<div class="empty-state"><p class="text-gray-500">اختر عضو الفريق لعرض سجل الحضور</p></div>';
-                        document.getElementById('leaves-list').innerHTML = '<div class="empty-state"><p class="text-gray-500">اختر عضو الفريق لعرض سجل الإجازات</p></div>';
-                    }
-                });
-
-                document.getElementById('add-attendance-btn')?.addEventListener('click', () => this.showAttendanceForm());
-                document.getElementById('add-leave-btn')?.addEventListener('click', () => this.showLeaveForm());
-
-                // Add report generation button
-                const reportBtn = document.createElement('button');
-                reportBtn.className = 'btn-success btn-sm ml-2';
-                reportBtn.innerHTML = '<i class="fas fa-file-alt ml-2"></i>تقرير حضور/غياب';
-                reportBtn.addEventListener('click', () => this.generateAttendanceReport());
-                memberSelect.parentElement.appendChild(reportBtn);
+                    m.map(x => `<option value="${x.id}">${Utils.escapeHTML(x.name || '')}</option>`).join('');
+                this._attachAttendanceListeners();
             }
         } catch (error) {
             const errorMessage = error?.message || error?.toString() || 'خطأ غير معروف';
@@ -4610,16 +4652,32 @@ const SafetyHealthManagement = {
         }
 
         try {
-            Loading.show();
-            const response = await GoogleIntegration.sendRequest({
+            container.innerHTML = '<div class="empty-state"><p class="text-gray-500">جاري التحميل...</p></div>';
+            const fetchPromise = GoogleIntegration.sendRequest({
                 action: 'getSafetyHealthManagementSettings',
                 data: {}
             });
+            let response;
+            try {
+                response = await this._raceWithTimeout(fetchPromise);
+            } catch (timeoutErr) {
+                if (timeoutErr && timeoutErr.timeout) {
+                    fetchPromise.then((r) => {
+                        const c = document.getElementById('settings-container');
+                        if (!c) return;
+                        if (r && r.success && r.data) this.renderSettingsContent(c, r.data);
+                        else {
+                            const defaultSettings = { leaveTypes: ['سنوية', 'مرضية', 'طارئة', 'أخرى'], attendanceStatuses: ['حاضر', 'متأخر', 'غائب', 'عمل ميداني'], kpiTargets: { targetInspections: 20, targetActionsClosure: 80, targetObservations: 15, targetTrainings: 3, targetCommitment: 95 } };
+                            this.renderSettingsContent(c, defaultSettings);
+                        }
+                    }).catch(() => {});
+                } else throw timeoutErr;
+            }
 
-            if (response.success && response.data) {
+            if (response && response.success && response.data) {
                 const settings = response.data;
                 this.renderSettingsContent(container, settings);
-            } else {
+            } else if (response) {
                 // عرض الإعدادات الافتراضية في حالة فشل التحميل
                 const defaultSettings = {
                     leaveTypes: ['سنوية', 'مرضية', 'طارئة', 'أخرى'],
@@ -4666,8 +4724,6 @@ const SafetyHealthManagement = {
                 }
             };
             this.renderSettingsContent(container, defaultSettings);
-        } finally {
-            Loading.hide();
         }
     },
 
@@ -6356,39 +6412,58 @@ const SafetyHealthManagement = {
             return;
         }
 
-        try {
-            // تحميل أعضاء الفريق
-            const membersResponse = await GoogleIntegration.sendRequest({
-                action: 'getSafetyTeamMembers',
-                data: {}
-            });
-
-            if (membersResponse.success && membersResponse.data) {
-                const members = Array.isArray(membersResponse.data) ? membersResponse.data : [];
-                memberSelect.innerHTML = '<option value="">اختر عضو الفريق</option>' +
-                    members.map(m => `
-                        <option value="${m.id}">
-                            ${Utils.escapeHTML(m.name || '')}
-                        </option>
-                    `).join('');
-
-                // إعداد مستمع الأحداث
-                if (analyzeBtn) {
-                    analyzeBtn.addEventListener('click', () => {
-                        const memberId = memberSelect.value;
-                        if (!memberId) {
-                            Notification.error('يرجى اختيار عضو الفريق');
-                            return;
-                        }
-                        this.performComprehensiveAnalysis(memberId);
-                    });
-                }
-            }
-        } catch (error) {
-            const errorMessage = error?.message || error?.toString() || 'خطأ غير معروف';
-            Utils.safeError('خطأ في تحميل التحليل:', errorMessage, error);
-            container.innerHTML = `<div class="empty-state"><p class="text-red-500">${Utils.escapeHTML(errorMessage)}</p></div>`;
+        let members = this._getMembersFromCache();
+        if (members && members.length > 0) {
+            memberSelect.innerHTML = '<option value="">اختر عضو الفريق</option>' +
+                members.map(m => `<option value="${m.id}">${Utils.escapeHTML(m.name || '')}</option>`).join('');
         }
+
+        try {
+            const fetchPromise = GoogleIntegration.sendRequest({ action: 'getSafetyTeamMembers', data: {} });
+            let membersResponse;
+            try {
+                membersResponse = await this._raceWithTimeout(fetchPromise);
+            } catch (timeoutErr) {
+                if (timeoutErr && timeoutErr.timeout) {
+                    fetchPromise.then((r) => {
+                        if (r && r.success && r.data) {
+                            const m = Array.isArray(r.data) ? r.data : [];
+                            this.cache.members = m;
+                            this.cache.lastLoad = Date.now();
+                            const sel = document.getElementById('analysis-member-select');
+                            if (sel) sel.innerHTML = '<option value="">اختر عضو الفريق</option>' + m.map(x => `<option value="${x.id}">${Utils.escapeHTML(x.name || '')}</option>`).join('');
+                        }
+                    }).catch(() => {});
+                }
+                this._attachAnalysisButton(container, memberSelect, analyzeBtn);
+                return;
+            }
+
+            if (membersResponse && membersResponse.success && membersResponse.data) {
+                members = Array.isArray(membersResponse.data) ? membersResponse.data : [];
+                this.cache.members = members;
+                this.cache.lastLoad = Date.now();
+                memberSelect.innerHTML = '<option value="">اختر عضو الفريق</option>' +
+                    members.map(m => `<option value="${m.id}">${Utils.escapeHTML(m.name || '')}</option>`).join('');
+            }
+            this._attachAnalysisButton(container, memberSelect, analyzeBtn);
+        } catch (error) {
+            Utils.safeError('خطأ في تحميل التحليل:', error?.message, error);
+            this._attachAnalysisButton(container, memberSelect, analyzeBtn);
+        }
+    },
+
+    _attachAnalysisButton(container, memberSelect, analyzeBtn) {
+        if (!analyzeBtn) return;
+        const self = this;
+        analyzeBtn.onclick = function () {
+            const memberId = memberSelect ? memberSelect.value : '';
+            if (!memberId) {
+                Notification.error('يرجى اختيار عضو الفريق');
+                return;
+            }
+            self.performComprehensiveAnalysis(memberId);
+        };
     },
 
     async performComprehensiveAnalysis(memberId) {
@@ -6415,8 +6490,6 @@ const SafetyHealthManagement = {
 
         try {
             const mid = String(memberId);
-
-            // جلب بيانات العضو وجميع المصادر بالتوازي لتسريع التحليل (طلب واحد متوازي بدل تسلسلي)
             const [memberResponse, incidentsResponse, nearMissResponse, ptwResponse, trainingResponse,
                    inspectionsResponse, attendanceResponse, leavesResponse, kpisResponse, observationsResponse] = await Promise.all([
                 GoogleIntegration.sendRequest({ action: 'getSafetyTeamMember', data: { memberId: memberId } }),
