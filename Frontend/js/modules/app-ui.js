@@ -2141,10 +2141,6 @@ window.UI = {
      * عرض التطبيق الرئيسي
      */
     async showMainApp() {
-        // إزالة overlay استعادة الجلسة إن وُجد (بعد نجاح الاستعادة أو عند عرض التطبيق)
-        const restoreOverlay = document.getElementById('hse-session-restore-overlay');
-        if (restoreOverlay && restoreOverlay.parentNode) restoreOverlay.remove();
-
         const loginScreen = document.getElementById('login-screen');
         const mainApp = document.getElementById('main-app');
 
@@ -2154,12 +2150,14 @@ window.UI = {
             return;
         }
 
-        // تحديث القائمة الجانبية حسب الصلاحيات قبل إظهار التطبيق لتفادي ظهور الموديولات غير المسموح بها ثم اختفائها
+        // تحديث القائمة الجانبية حسب الصلاحيات
         if (typeof Permissions !== 'undefined' && typeof Permissions.updateNavigation === 'function') {
             Permissions.updateNavigation();
         }
 
-        // فوراً: إخفاء شاشة الدخول وإظهار التطبيق حتى لا يظهر الدخول عند أي timeout (مثل 2 ثانية)
+        // إزالة overlay استعادة الجلسة + إظهار التطبيق فوراً (أولوية قصوى)
+        const restoreOverlay = document.getElementById('hse-session-restore-overlay');
+        if (restoreOverlay && restoreOverlay.parentNode) restoreOverlay.remove();
         if (loginScreen) {
             loginScreen.style.display = 'none';
             loginScreen.classList.remove('active', 'show');
@@ -2168,7 +2166,25 @@ window.UI = {
         document.body.classList.add('app-active');
         try { window._hseAppVisible = true; } catch (e) {}
 
-        // تحميل إعدادات الشركة أولاً (شاشة الدخول تبقى ظاهرة) ثم عرض السياسة مباشرة دون شاشة تحضيرية
+        // عند إعادة التحميل: عرض التطبيق فوراً ثم تحميل الإعدادات في الخلفية (بدون await)
+        if (AppState.isPageRefresh) {
+            document.documentElement.classList.remove('hse-post-login-overlay-active');
+            document.body.classList.remove('hse-post-login-overlay-active');
+            try {
+                this._continueMainAppSetup();
+            } catch (setupErr) {
+                if (AppState.debugMode) Utils.safeWarn('⚠️ خطأ في تهيئة التطبيق:', setupErr);
+            }
+            // تحميل إعدادات الشركة في الخلفية (لا تحجب العرض)
+            if (typeof DataManager !== 'undefined' && DataManager.loadCompanySettings) {
+                DataManager.loadCompanySettings(false).then(() => {
+                    AppState._companySettingsLoadedAfterLogin = true;
+                }).catch(() => {});
+            }
+            return;
+        }
+
+        // أول دخول (ليس إعادة تحميل): تحميل إعدادات الشركة وعرض السياسة
         if (!AppState.companySettings || typeof AppState.companySettings !== 'object') {
             AppState.companySettings = {};
         }
@@ -2186,8 +2202,7 @@ window.UI = {
         if (AppState.companySettings.postLoginItems === undefined) {
             AppState.companySettings.postLoginItems = [];
         }
-        // بعد أول دخول: إذا كانت السياسات فارغة من الـ API، نجرب قراءة من localStorage (مثلاً من إعدادات سابقة)
-        if (!AppState.isPageRefresh && (!Array.isArray(AppState.companySettings.postLoginItems) || AppState.companySettings.postLoginItems.length === 0)) {
+        if (!Array.isArray(AppState.companySettings.postLoginItems) || AppState.companySettings.postLoginItems.length === 0) {
             try {
                 const saved = typeof localStorage !== 'undefined' && localStorage.getItem('hse_company_settings');
                 if (saved) {
@@ -2201,22 +2216,19 @@ window.UI = {
             } catch (e) { /* تجاهل */ }
         }
 
-        // عرض السياسة: أول دخول للمستخدم، أو إذا مرّ أكثر من 10 أيام منذ آخر مشاهدة (تكرار كل 10 أيام)
         const shouldShowPolicyByTime = !this._currentUserHasSeenPostLoginPolicy();
         let postLoginItems = this._getPostLoginItemsForDisplay();
-        // إذا مطلوب عرض السياسة ولا توجد عناصر من الإعدادات، نعرض عنصراً افتراضياً واحداً
         if (shouldShowPolicyByTime && (!postLoginItems || postLoginItems.length === 0)) {
             postLoginItems = [{ title: 'تعليمات الاستخدام', body: 'مرحباً بك. يرجى الاطلاع على تعليمات وسياسات الشركة والالتزام بها.', active: true, order: 0, durationSeconds: 10 }];
         }
         const shouldShowPolicy = postLoginItems.length > 0 && shouldShowPolicyByTime;
 
-        // التطبيق مُظهِر مسبقاً أعلاه؛ إخفاء المحتوى مؤقتاً إذا سنعرض السياسة
         if (mainApp) mainApp.style.display = shouldShowPolicy ? 'none' : 'flex';
 
         if (shouldShowPolicy) {
             document.documentElement.classList.add('hse-post-login-overlay-active');
             document.body.classList.add('hse-post-login-overlay-active');
-            if (AppState.debugMode) Utils.safeLog('عرض شاشة السياسة بعد الدخول (قبل لوحة التحكم)، عدد العناصر:', postLoginItems.length);
+            if (AppState.debugMode) Utils.safeLog('عرض شاشة السياسة بعد الدخول، عدد العناصر:', postLoginItems.length);
             this._showPostLoginOverlay(postLoginItems, () => {
                 const el = document.getElementById('hse-post-login-overlay');
                 if (el && el.parentNode) el.remove();
@@ -2233,7 +2245,6 @@ window.UI = {
             return;
         }
 
-        // لا توجد سياسة: إزالة صنف الـ overlay وإظهار التطبيق مباشرة
         document.documentElement.classList.remove('hse-post-login-overlay-active');
         document.body.classList.remove('hse-post-login-overlay-active');
         if (mainApp) mainApp.style.display = 'flex';

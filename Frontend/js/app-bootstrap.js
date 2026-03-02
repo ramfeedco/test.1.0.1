@@ -51,6 +51,8 @@
         /**
          * بدء التطبيق
          */
+        _sessionRestored: false,
+
         async start() {
             log('🚀 بدء تحميل التطبيق...');
             time('⏱️ Total Load Time');
@@ -67,8 +69,12 @@
                 
                 // المرحلة 4: واجهة المستخدم
                 await this.phaseUI();
+
+                // استعادة فورية للجلسة عند إعادة التحميل (Auth محمل عبر defer قبل bootstrap)
+                // هذا يعرض التطبيق فوراً بدلاً من انتظار 34 موديول في phaseModules
+                this._tryFastSessionRestore();
                 
-                // المرحلة 5: الموديولات
+                // المرحلة 5: الموديولات (تستمر في الخلفية حتى لو الجلسة استُعيدت)
                 await this.phaseModules();
                 
                 // المرحلة 6: جاهز
@@ -692,15 +698,45 @@
         },
 
         /**
+         * استعادة فورية للجلسة (تُستدعى بعد phaseUI مباشرة - قبل phaseModules)
+         * Auth و DataManager و UI محملة عبر defer قبل bootstrap، لذا يجب أن تكون متاحة فوراً
+         */
+        _tryFastSessionRestore() {
+            if (this._sessionRestored) return;
+
+            const sessionData = sessionStorage.getItem('hse_current_session');
+            const rememberData = localStorage.getItem('hse_remember_user');
+            if (!sessionData && !rememberData) return;
+
+            if (window.Auth && typeof window.Auth.checkRememberedUser === 'function' &&
+                typeof AppState !== 'undefined' && AppState.appData &&
+                window.UI && typeof window.UI.showMainApp === 'function') {
+                try {
+                    AppState.isPageRefresh = true;
+                    const isLoggedIn = window.Auth.checkRememberedUser();
+                    if (isLoggedIn) {
+                        this._sessionRestored = true;
+                        log('⚡ استعادة فورية للجلسة (fast-track)');
+                        window.UI.showMainApp();
+                    }
+                } catch (e) {
+                    log('⚠️ فشل الاستعادة الفورية، سيتم المحاولة لاحقاً:', e);
+                }
+            }
+        },
+
+        /**
          * التحقق من الجلسة واستعادتها (دالة مساعدة)
          */
         checkAndRestoreSession() {
-            // ✅ إصلاح: التحقق من وجود بيانات الجلسة أولاً قبل أي شيء آخر
-            // هذا يمنع عرض شاشة الدخول مؤقتاً إذا كانت هناك جلسة لكن البيانات لم تُحمّل بعد
+            if (this._sessionRestored) {
+                log('✅ الجلسة مستعادة مسبقاً (fast-track) - تخطي');
+                return;
+            }
+
             const sessionData = sessionStorage.getItem('hse_current_session');
             const rememberData = localStorage.getItem('hse_remember_user');
             
-            // إذا لم تكن هناك بيانات جلسة على الإطلاق، نعرض شاشة الدخول مباشرة
             if (!sessionData && !rememberData) {
                 log('ℹ️ لا توجد جلسة محفوظة - عرض شاشة تسجيل الدخول');
                 if (typeof window.UI !== 'undefined' && typeof window.UI.showLoginScreen === 'function') {
@@ -709,13 +745,11 @@
                 return;
             }
             
-            // إذا كانت هناك بيانات جلسة، ننتظر حتى تكون AppState و AppState.appData جاهزة
             if (typeof window.Auth !== 'undefined' && typeof window.Auth.checkRememberedUser === 'function') {
                 try {
-                    // التأكد من تحميل AppState و AppState.appData قبل التحقق (انتظار أطول لضمان اكتمال DataManager.load)
                     if (typeof AppState === 'undefined' || !AppState.appData) {
                         const retries = this._sessionRestoreRetries = (this._sessionRestoreRetries || 0) + 1;
-                        const maxRetries = 18; // نحو 9 ثوانٍ (18 × 500ms) قبل الاستسلام
+                        const maxRetries = 6; // 3 ثوانٍ كحد أقصى (6 × 500ms)
                         if (retries > maxRetries) {
                             log('ℹ️ انتهت محاولات انتظار appData - عرض شاشة الدخول');
                             this._sessionRestoreRetries = 0;
