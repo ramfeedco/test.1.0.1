@@ -77,7 +77,8 @@ const AIAssistant = {
                                 context: {
                                     userId: AppState.currentUser?.id || null,
                                     userName: AppState.currentUser?.name || null,
-                                    userRole: AppState.currentUser?.role || null
+                                    userRole: AppState.currentUser?.role || null,
+                                    ...this.buildEnrichedContext()
                                 }
                             });
                             
@@ -2119,6 +2120,45 @@ const AIAssistant = {
                 message: 'حدث خطأ أثناء البحث عن معايير السلامة.',
                 error: error.toString()
             };
+        }
+    },
+
+    /**
+     * بناء سياق إحصائي مختصر من البيانات المحلية لتغذية Gemini عبر Backend
+     * @return {Object} ملخص إحصائي من AppState.appData
+     */
+    buildEnrichedContext() {
+        try {
+            const data = (typeof AppState !== 'undefined' && AppState.appData) ? AppState.appData : {};
+            const now = new Date();
+            const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+
+            const countRecent = (arr, dateField) => {
+                if (!Array.isArray(arr)) return 0;
+                return arr.filter(r => {
+                    const d = r[dateField];
+                    return d && new Date(d) >= thisMonthStart;
+                }).length;
+            };
+
+            return {
+                localStats: {
+                    incidents:  { total: (data.Incidents || []).length,  thisMonth: countRecent(data.Incidents, 'date') },
+                    nearMiss:   { total: (data.NearMiss || []).length,   thisMonth: countRecent(data.NearMiss, 'date') },
+                    violations: { total: (data.Violations || []).length, thisMonth: countRecent(data.Violations, 'date') },
+                    training:   { total: (data.Training || []).length,   thisMonth: countRecent(data.Training, 'date') },
+                    employees:  { total: (data.Employees || []).length },
+                    contractors: { total: (data.ApprovedContractors || []).length },
+                    actions: {
+                        total: (data.ActionTrackingRegister || []).length,
+                        overdue: (data.ActionTrackingRegister || []).filter(r =>
+                            r.status !== 'Completed' && r.dueDate && new Date(r.dueDate) < now
+                        ).length
+                    }
+                }
+            };
+        } catch (e) {
+            return {};
         }
     },
 

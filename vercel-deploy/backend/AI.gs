@@ -947,6 +947,174 @@ function getUserSpecificRecommendations(userId, context) {
  * @param {Object} context - السياق {userId, userName, userRole, conversationHistory}
  * @return {Object} رد ذكي مع البيانات
  */
+/**
+ * ============================================
+ * تكامل Google Gemini AI
+ * ============================================
+ */
+
+const GEMINI_API_KEY = 'AIzaSyAD7S2HF5RwKFlp0Ijags9a7c9o57Z3o2Y';
+const GEMINI_MODEL = 'gemini-1.5-flash';
+
+/**
+ * استدعاء Gemini API مع سياق بيانات HSE المباشرة من الشيتات
+ * @param {string} question - سؤال المستخدم
+ * @param {Object} context - سياق المستخدم (اسم، دور...)
+ * @return {string|null} نص الرد من Gemini أو null عند الفشل
+ */
+function askGeminiWithHSEContext(question, context) {
+  try {
+    const hseStats = buildHSEStatsForGemini();
+
+    const systemPrompt =
+      'أنت مساعد ذكاء اصطناعي متخصص في إدارة السلامة والصحة المهنية (HSE).\n' +
+      'دورك: الإجابة على أسئلة فريق HSE باللغة العربية بدقة واحترافية.\n\n' +
+      'البيانات الإحصائية الحالية للنظام:\n' +
+      JSON.stringify(hseStats, null, 2) + '\n\n' +
+      'معلومات إضافية:\n' +
+      '- المستخدم الحالي: ' + (context.userName || 'غير محدد') + '\n' +
+      '- الدور الوظيفي: ' + (context.userRole || 'غير محدد') + '\n' +
+      '- التاريخ الحالي: ' + new Date().toLocaleDateString('ar-SA') + '\n\n' +
+      'تعليمات الإجابة:\n' +
+      '1. أجب دائماً باللغة العربية\n' +
+      '2. استخدم البيانات الإحصائية المقدمة إذا كانت ذات صلة بالسؤال\n' +
+      '3. إذا لم تجد إجابة في البيانات، قدم معلومات HSE عامة مفيدة ودقيقة\n' +
+      '4. كن محدداً وعملياً في إجاباتك\n' +
+      '5. استخدم رموزاً تعبيرية مناسبة لتوضيح الفقرات\n' +
+      '6. إذا كان السؤال يحتاج بيانات تفصيلية غير متوفرة، وجّه المستخدم لاستخدام الوحدة المناسبة في النظام';
+
+    const payload = {
+      contents: [{
+        parts: [{ text: systemPrompt + '\n\nسؤال المستخدم: ' + question }]
+      }],
+      generationConfig: {
+        temperature: 0.7,
+        maxOutputTokens: 1024,
+        topP: 0.8
+      },
+      safetySettings: [
+        { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_NONE' },
+        { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_NONE' },
+        { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_NONE' },
+        { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_NONE' }
+      ]
+    };
+
+    const response = UrlFetchApp.fetch(
+      'https://generativelanguage.googleapis.com/v1beta/models/' + GEMINI_MODEL + ':generateContent?key=' + GEMINI_API_KEY,
+      {
+        method: 'post',
+        contentType: 'application/json',
+        payload: JSON.stringify(payload),
+        muteHttpExceptions: true
+      }
+    );
+
+    const responseCode = response.getResponseCode();
+    const responseBody = response.getContentText();
+
+    if (responseCode !== 200) {
+      Logger.log('Gemini API Error ' + responseCode + ': ' + responseBody);
+      return null;
+    }
+
+    const parsed = JSON.parse(responseBody);
+    if (
+      parsed.candidates &&
+      parsed.candidates[0] &&
+      parsed.candidates[0].content &&
+      parsed.candidates[0].content.parts &&
+      parsed.candidates[0].content.parts[0]
+    ) {
+      return parsed.candidates[0].content.parts[0].text;
+    }
+
+    Logger.log('Gemini: No valid candidate in response');
+    return null;
+
+  } catch (error) {
+    Logger.log('Error calling Gemini API: ' + error.toString());
+    return null;
+  }
+}
+
+/**
+ * بناء ملخص إحصائي من بيانات الشيتات لتغذية Gemini
+ * @return {Object} إحصاءات موجزة من جميع الوحدات
+ */
+function buildHSEStatsForGemini() {
+  try {
+    const spreadsheetId = getSpreadsheetId();
+    const stats = {};
+    const now = new Date();
+    const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+
+    const modules = [
+      { label: 'الحوادث', sheet: 'Incidents', dateField: 'date' },
+      { label: 'الحوادث_الوشيكة', sheet: 'NearMiss', dateField: 'date' },
+      { label: 'المخالفات', sheet: 'Violations', dateField: 'date' },
+      { label: 'التدريب', sheet: 'Training', dateField: 'date' },
+      { label: 'الإجراءات_التصحيحية', sheet: 'ActionTrackingRegister', dateField: 'dueDate' },
+      { label: 'الموظفون', sheet: 'Employees', dateField: null },
+      { label: 'المقاولون_المعتمدون', sheet: 'ApprovedContractors', dateField: null }
+    ];
+
+    modules.forEach(function(mod) {
+      try {
+        var data = readFromSheet(mod.sheet, spreadsheetId);
+        if (!data || data.length === 0) {
+          stats[mod.label] = { الإجمالي: 0 };
+          return;
+        }
+
+        var entry = { الإجمالي: data.length };
+
+        if (mod.dateField) {
+          var thisMonth = data.filter(function(r) {
+            var d = r[mod.dateField];
+            return d && new Date(d) >= thisMonthStart;
+          });
+          var lastMonth = data.filter(function(r) {
+            var d = r[mod.dateField];
+            if (!d) return false;
+            var dt = new Date(d);
+            return dt >= lastMonthStart && dt < thisMonthStart;
+          });
+          entry['هذا_الشهر'] = thisMonth.length;
+          entry['الشهر_الماضي'] = lastMonth.length;
+        }
+
+        // إحصاءات خاصة بالإجراءات المتأخرة
+        if (mod.sheet === 'ActionTrackingRegister') {
+          var overdue = data.filter(function(r) {
+            return r.status !== 'Completed' && r.dueDate && new Date(r.dueDate) < now;
+          });
+          entry['متأخرة'] = overdue.length;
+        }
+
+        // إحصاءات حسب الخطورة للحوادث
+        if (mod.sheet === 'Incidents') {
+          var bySeverity = {};
+          data.forEach(function(r) { bySeverity[r.severity || 'غير_محدد'] = (bySeverity[r.severity || 'غير_محدد'] || 0) + 1; });
+          entry['حسب_الخطورة'] = bySeverity;
+        }
+
+        stats[mod.label] = entry;
+      } catch (e) {
+        Logger.log('buildHSEStatsForGemini - skip ' + mod.sheet + ': ' + e.toString());
+      }
+    });
+
+    return stats;
+  } catch (error) {
+    Logger.log('Error in buildHSEStatsForGemini: ' + error.toString());
+    return {};
+  }
+}
+
+// ============================================
+
 function processAIQuestion(question, context = {}) {
     try {
         if (!question || typeof question !== 'string') {
@@ -1008,11 +1176,18 @@ function processAIQuestion(question, context = {}) {
                 
             case 'help':
             case 'howto':
-                responseText = generateHelpResponse(intent, parameters);
+                var helpGemini = askGeminiWithHSEContext(question, context);
+                responseText = helpGemini || generateHelpResponse(intent, parameters);
                 break;
                 
             default:
-                responseText = generateDefaultResponse(question, context);
+                // استخدام Gemini للإجابة على الأسئلة غير المصنفة
+                var geminiAnswer = askGeminiWithHSEContext(question, context);
+                if (geminiAnswer) {
+                    responseText = geminiAnswer;
+                } else {
+                    responseText = generateDefaultResponse(question, context);
+                }
         }
         
         // إضافة أزرار الإجراءات السريعة
