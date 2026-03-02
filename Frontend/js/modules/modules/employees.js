@@ -1030,10 +1030,11 @@ const Employees = {
             }
 
             // محاولة تحميل البيانات من Backend باستخدام getAllEmployees
+            // ✅ includeInactive: true لاستلام جميع الموظفين (نشطين + مستقيلين) حتى يظهر عداد المستقيلين بشكل صحيح
             try {
                 const result = await GoogleIntegration.sendRequest({
                     action: 'getAllEmployees',
-                    data: { filters: {} }
+                    data: { filters: { includeInactive: true } }
                 });
 
                 if (result && result.success && Array.isArray(result.data)) {
@@ -1144,7 +1145,7 @@ const Employees = {
             // محاولة تحميل البيانات من Backend
             const result = await GoogleIntegration.sendRequest({
                 action: 'getAllEmployees',
-                data: { filters: {} }
+                data: { filters: { includeInactive: true } }
             });
 
             if (result && result.success && Array.isArray(result.data)) {
@@ -3579,8 +3580,10 @@ const Employees = {
                     // ✅ تحديث المحتوى
                     countBadge.textContent = inactiveCount;
                     
-                    // ✅ إظهار الشارة دائماً بشكل ثابت (حتى لو كان العدد صفر)
-                    // استخدام setAttribute لضمان تطبيق الأنماط بشكل صحيح
+                    // ✅ لون الشارة: رمادي عند 0 (محايد)، أحمر عند وجود مستقيلين
+                    const isZero = inactiveCount === 0;
+                    const bgColor = isZero ? '#6b7280' : '#dc2626';
+                    const boxShadow = isZero ? '0 2px 4px rgba(107, 114, 128, 0.3)' : '0 2px 4px rgba(220, 38, 38, 0.3)';
                     countBadge.style.cssText = `
                         display: inline-flex !important;
                         visibility: visible !important;
@@ -3590,19 +3593,19 @@ const Employees = {
                         min-width: 24px;
                         height: 22px;
                         padding: 0 8px;
-                        background: #dc2626;
+                        background: ${bgColor};
                         color: white;
                         border-radius: 11px;
                         font-size: 11px;
                         font-weight: 700;
                         margin-right: 4px;
-                        box-shadow: 0 2px 4px rgba(220, 38, 38, 0.3);
+                        box-shadow: ${boxShadow};
                         transition: all 0.3s ease;
                     `;
                     
-                    // ✅ تطبيق تأثير خاص إذا كان checkbox مفعل
+                    // ✅ تطبيق تأثير خاص إذا كان checkbox مفعل (عرض المستقيلين)
                     const checkbox = document.getElementById('show-inactive-employees');
-                    if (checkbox && checkbox.checked) {
+                    if (checkbox && checkbox.checked && !isZero) {
                         countBadge.style.background = 'linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)';
                         countBadge.style.boxShadow = '0 2px 6px rgba(220, 38, 38, 0.4)';
                         countBadge.style.transform = 'scale(1.1)';
