@@ -9723,10 +9723,12 @@ const Contractors = {
         // إجمالي المقاولين المسجلين = عدد السجلات الفريدة في القائمتين
         const totalContractors = mergedContractors.length;
 
-        // المقاولين المعتمدين (من قائمة المعتمدين)
+        // المقاولين المعتمدين: كل سجل في قائمة المعتمدين يُحسب معتمداً ما لم تكن حالته صريحة غير معتمدة
         const totalApproved = approvedContractors.filter(ac => {
-            const status = (ac.status || '').toLowerCase();
-            return status === 'approved' || status === 'معتمد' || status === 'نشط';
+            const status = (ac.status || '').toString().trim();
+            const s = status.toLowerCase();
+            if (!status) return true; // وجود السجل في قائمة المعتمدين = معتمد
+            return s === 'approved' || s === 'معتمد' || s === 'نشط' || s === 'active';
         }).length;
 
         // إجمالي التقييمات
@@ -10591,6 +10593,11 @@ const Contractors = {
         };
 
         return `
+            <style>
+                .contractor-analytics-view-btn { color: #111; }
+                [data-theme="dark"] .contractor-analytics-view-btn { background: #4b5563 !important; color: #f3f4f6 !important; }
+                [data-theme="dark"] .contractor-analytics-view-btn:hover { background: #6b7280 !important; }
+            </style>
             <div class="content-card border-2 border-gray-200 rounded-xl shadow-lg overflow-hidden">
                 <div class="card-header bg-gradient-to-r from-indigo-50 via-purple-50 to-indigo-50 border-b-2 border-indigo-200">
                     <div class="flex items-center justify-between p-4">
@@ -10624,8 +10631,8 @@ const Contractors = {
                             </colgroup>
                             <thead style="position: sticky; top: 0; z-index: 10; background: #e0e7ff; box-shadow: 0 2px 0 0 #c7d2fe;">
                                 <tr>
-                                    <th class="px-2 py-3 text-center font-bold text-indigo-900 border-b-2 border-indigo-200" style="background: #e0e7ff; white-space: nowrap;">#</th>
-                                    <th class="px-4 py-3 text-right font-bold text-indigo-900 border-b-2 border-indigo-200" style="background: #e0e7ff; white-space: nowrap;">اسم المقاول</th>
+                                    <th class="px-2 py-3 text-center font-bold text-indigo-900 border-b-2 border-indigo-200" style="background: #e0e7ff; white-space: nowrap;" scope="col">#</th>
+                                    <th id="header-اسم-المقاول" class="px-4 py-3 text-right font-bold text-indigo-900 border-b-2 border-indigo-200" style="background: #e0e7ff; white-space: nowrap;" scope="col">اسم المقاول</th>
                                     <th class="px-4 py-3 text-center font-bold text-indigo-900 border-b-2 border-indigo-200" style="background: #e0e7ff; white-space: nowrap;">نوع الخدمة</th>
                                     <th class="px-4 py-3 text-center font-bold text-indigo-900 border-b-2 border-indigo-200" style="background: #e0e7ff; white-space: nowrap;">حالة العقد</th>
                                     <th class="px-4 py-3 text-center font-bold text-indigo-900 border-b-2 border-indigo-200" style="background: #e0e7ff; white-space: nowrap;">التقييمات</th>
@@ -10643,11 +10650,11 @@ const Contractors = {
                                         <td class="px-2 py-3 text-center align-middle">
                                             <span class="inline-flex w-8 h-8 items-center justify-center rounded-full bg-gray-200 text-gray-700 font-bold text-sm">${index + 1}</span>
                                         </td>
-                                        <td class="px-4 py-3 text-right align-middle" style="overflow: hidden; text-overflow: ellipsis;">
+                                        <td class="px-4 py-3 text-right align-middle" style="overflow: hidden; text-overflow: ellipsis;" headers="header-اسم-المقاول">
                                             <div style="min-width: 0;">
-                                                <strong class="text-gray-800 font-semibold block truncate">${Utils.escapeHTML(contractor.name || contractor.companyName || '')}</strong>
-                                                <span class="text-xs text-gray-500">
-                                                    <span class="badge badge-${(contractor.status || '').toString().trim() === 'نشط' ? 'success' : 'danger'} text-xs">
+                                                <strong class="text-gray-800 font-semibold block truncate text-right">${Utils.escapeHTML(contractor.name || contractor.companyName || '')}</strong>
+                                                <span class="text-xs text-gray-500 mt-1 block text-right">
+                                                    <span class="badge badge-${['نشط', 'approved', 'معتمد', 'active'].includes((contractor.status || '').toString().trim().toLowerCase()) ? 'success' : 'danger'} text-xs">
                                                         ${contractor.status || '-'}
                                                     </span>
                                                 </span>
@@ -10696,10 +10703,10 @@ const Contractors = {
                                         </td>
                                         <td class="px-4 py-3 text-center align-middle">
                                             <button onclick="Contractors.viewContractorAnalytics('${contractor.id}')" 
-                                                    class="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 rounded-lg transition-colors font-medium text-sm text-white" 
-                                                    title="عرض التفاصيل" style="color: #ffffff;">
-                                                <i class="fas fa-eye" style="color: #ffffff;"></i>
-                                                <span style="color: #ffffff; font-weight: 600;">عرض</span>
+                                                    class="contractor-analytics-view-btn inline-flex items-center gap-2 px-4 py-2 rounded-lg transition-colors font-medium text-sm bg-gray-200 hover:bg-gray-300 text-gray-900 dark:bg-gray-600 dark:hover:bg-gray-500 dark:text-gray-100" 
+                                                    title="عرض التفاصيل">
+                                                <i class="fas fa-eye"></i>
+                                                <span>عرض</span>
                                             </button>
                                         </td>
                                     </tr>
