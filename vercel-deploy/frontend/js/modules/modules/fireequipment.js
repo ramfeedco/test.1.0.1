@@ -308,52 +308,37 @@ FireEquipment = {
                 // ✅ تحميل محتوى التبويب الحالي (database) فوراً
                 const databaseTab = document.getElementById('fire-tab-database');
                 if (databaseTab) {
-                    try {
-                        // استخدام promiseWithTimeout لحماية من timeout
-                        const renderWithTimeout = async (renderFn) => {
-                            // Fallback implementation if Utils.promiseWithTimeout is not available
-                            const timeoutWrapper = (promise, timeout, message) => {
-                                const timeoutPromise = new Promise((_, reject) => {
-                                    setTimeout(() => {
-                                        reject(new Error(message || `Timeout: العملية استغرقت أكثر من ${timeout}ms`));
-                                    }, timeout);
-                                });
-                                return Promise.race([promise, timeoutPromise]);
-                            };
-                            
-                            if (typeof Utils !== 'undefined' && Utils.promiseWithTimeout) {
-                                return await Utils.promiseWithTimeout(
-                                    renderFn(),
-                                    10000, // 10 ثوان timeout لكل tab
-                                    'Timeout: renderTabContent took too long'
-                                );
-                            }
-                            // استخدام fallback implementation
-                            return await timeoutWrapper(
-                                renderFn(),
-                                10000, // 10 ثوان timeout لكل tab
-                                'Timeout: renderTabContent took too long'
-                            );
+                    const renderWithTimeout = async (renderFn) => {
+                        const timeoutWrapper = (promise, timeout, msg) => {
+                            const timeoutPromise = new Promise((_, reject) => {
+                                setTimeout(() => reject(new Error(msg || 'Timeout')), timeout);
+                            });
+                            return Promise.race([promise, timeoutPromise]);
                         };
-                        
-                        const databaseContent = await renderWithTimeout(() => this.renderTabContent('database'));
-                        databaseTab.innerHTML = databaseContent || '<div class="fire-tab-loading"><p>خطأ في تحميل المحتوى</p></div>';
-                        
-                        // ✅ عرض البيانات دائماً (حتى لو كانت فارغة) - إصلاح مشكلة الواجهة الفارغة
-                        try {
-                            this.renderAssets();
-                        } catch (renderError) {
-                            Utils.safeWarn('⚠️ خطأ في renderAssets:', renderError);
+                        if (typeof Utils !== 'undefined' && Utils.promiseWithTimeout) {
+                            return await Utils.promiseWithTimeout(renderFn(), 10000, 'Timeout: renderTabContent');
                         }
+                        return await timeoutWrapper(renderFn(), 10000, 'Timeout: renderTabContent');
+                    };
+                    const fallbackDatabaseHtml = `
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div class="content-card"><div class="text-center"><p class="text-sm text-gray-500">إجمالي الأجهزة</p><p class="text-2xl font-bold" id="fire-summary-total">0</p></div></div>
+                            <div class="content-card"><div class="text-center"><p class="text-sm text-gray-500">أجهزة فعّالة</p><p class="text-2xl font-bold text-green-600" id="fire-summary-active">0</p></div></div>
+                            <div class="content-card"><div class="text-center"><p class="text-sm text-gray-500">بحاجة إلى متابعة</p><p class="text-2xl font-bold text-yellow-600" id="fire-summary-maintenance">0</p></div></div>
+                        </div>
+                        <div class="content-card mt-6"><div class="card-body"><div id="fire-assets-table" class="overflow-x-auto"><div class="empty-state"><p class="text-gray-500">لا توجد معدات مسجلة أو جاري التحميل.</p></div></div></div>
+                    `;
+                    try {
+                        const databaseContent = await renderWithTimeout(() => this.renderTabContent('database'));
+                        databaseTab.innerHTML = (databaseContent && databaseContent.trim()) ? databaseContent : fallbackDatabaseHtml;
                     } catch (error) {
                         Utils.safeWarn('⚠️ خطأ في تحميل محتوى قاعدة البيانات:', error);
-                        databaseTab.innerHTML = '<div class="fire-tab-loading"><p>خطأ في تحميل المحتوى</p></div>';
-                        // محاولة عرض البيانات المتوفرة محلياً
-                        try {
-                            this.renderAssets();
-                        } catch (renderError) {
-                            Utils.safeWarn('⚠️ خطأ في renderAssets:', renderError);
-                        }
+                        databaseTab.innerHTML = fallbackDatabaseHtml;
+                    }
+                    try {
+                        this.renderAssets();
+                    } catch (renderError) {
+                        Utils.safeWarn('⚠️ خطأ في renderAssets:', renderError);
                     }
                 }
 
@@ -1589,6 +1574,8 @@ FireEquipment = {
     },
 
     ensureData() {
+        if (typeof AppState === 'undefined') AppState = {};
+        if (!AppState.appData) AppState.appData = {};
         const data = AppState.appData;
         let migrated = false;
 
@@ -4910,7 +4897,8 @@ FireEquipment = {
      */
     hasTabAccess(tabName) {
         const user = AppState.currentUser;
-        if (!user) return false;
+        // عند عدم توفر المستخدم بعد (تحميل متأخر)، إظهار التبويب الأساسي لتجنب واجهة فارغة
+        if (!user) return tabName === 'database';
 
         // المدير لديه صلاحيات كاملة
         if (this.isAdmin()) return true;

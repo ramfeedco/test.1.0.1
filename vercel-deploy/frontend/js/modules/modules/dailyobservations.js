@@ -342,80 +342,44 @@ const DailyObservations = {
                 </div>
             `;
 
-            // محاولة تحميل المحتوى مع معالجة الأخطاء
-            let listContent = '';
-            let analysisContent = '';
-            let top10Content = '';
-            
-            try {
-                listContent = await this.renderList();
-            } catch (error) {
-                if (typeof Utils !== 'undefined' && Utils.safeError) {
-                    Utils.safeError('خطأ في تحميل قائمة الملاحظات:', error);
-                } else {
-                    console.error('خطأ في تحميل قائمة الملاحظات:', error);
-                }
-                listContent = `
-                    <div class="content-card">
-                        <div class="card-body">
-                            <div class="empty-state">
-                                <i class="fas fa-exclamation-triangle text-yellow-500 text-4xl mb-4"></i>
-                                <p class="text-gray-500">حدث خطأ في تحميل البيانات</p>
-                                <button onclick="DailyObservations.load()" class="btn-primary mt-4">
-                                    <i class="fas fa-redo ml-2"></i>
-                                    إعادة المحاولة
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                `;
-            }
-            
-            if (isAdmin) {
-                try {
-                    analysisContent = await this.renderDataAnalysis();
-                } catch (error) {
-                    Utils.safeError('خطأ في تحميل تحليل البيانات:', error);
-                    // عرض رسالة خطأ مفصلة للمطورين
-                    const errorMessage = error && error.message ? error.message : 'خطأ غير معروف';
-                    analysisContent = `
-                        <div class="content-card">
-                            <div class="card-body">
-                                <div class="empty-state">
-                                    <i class="fas fa-exclamation-triangle text-yellow-500 text-4xl mb-4"></i>
-                                    <p class="text-gray-500">حدث خطأ في تحميل تحليل البيانات</p>
-                                    <p class="text-sm text-gray-400 mt-2">${Utils.escapeHTML(errorMessage)}</p>
-                                    <button onclick="DailyObservations.load()" class="btn-primary mt-4">
-                                        <i class="fas fa-redo ml-2"></i>
-                                        إعادة المحاولة
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    `;
-                }
-            }
+            // تحميل المحتوى بالتوازي مع timeout لتجنب واجهة فارغة أو انتظار طويل
+            const CONTENT_TIMEOUT_MS = 10000;
+            const withTimeout = (promise, fallbackHtml) => {
+                const timeout = new Promise((_, reject) =>
+                    setTimeout(() => reject(new Error('انتهت مهلة التحميل')), CONTENT_TIMEOUT_MS)
+                );
+                return Promise.race([promise, timeout]).catch((error) => {
+                    Utils?.safeWarn?.('⚠️ تحميل محتوى الملاحظات اليومية:', error?.message || error);
+                    return fallbackHtml;
+                });
+            };
+            const listErrorHtml = `
+                <div class="content-card"><div class="card-body"><div class="empty-state">
+                    <i class="fas fa-exclamation-triangle text-yellow-500 text-4xl mb-4"></i>
+                    <p class="text-gray-500">حدث خطأ في تحميل البيانات أو انتهت المهلة</p>
+                    <button onclick="DailyObservations.load()" class="btn-primary mt-4"><i class="fas fa-redo ml-2"></i>إعادة المحاولة</button>
+                </div></div></div>`;
+            const analysisErrorHtml = `
+                <div class="content-card"><div class="card-body"><div class="empty-state">
+                    <i class="fas fa-exclamation-triangle text-yellow-500 text-4xl mb-4"></i>
+                    <p class="text-gray-500">حدث خطأ في تحميل تحليل البيانات</p>
+                    <button onclick="DailyObservations.load()" class="btn-primary mt-4"><i class="fas fa-redo ml-2"></i>إعادة المحاولة</button>
+                </div></div></div>`;
+            const top10ErrorHtml = `
+                <div class="content-card"><div class="card-body"><div class="empty-state">
+                    <i class="fas fa-exclamation-triangle text-yellow-500 text-4xl mb-4"></i>
+                    <p class="text-gray-500">حدث خطأ في تحميل أفضل 10 ملاحظات</p>
+                    <button onclick="DailyObservations.load()" class="btn-primary mt-4"><i class="fas fa-redo ml-2"></i>إعادة المحاولة</button>
+                </div></div></div>`;
 
-            // تحميل محتوى أفضل 10 ملاحظات
-            try {
-                top10Content = await this.renderTop10Observations();
-            } catch (error) {
-                Utils.safeError('خطأ في تحميل أفضل 10 ملاحظات:', error);
-                top10Content = `
-                    <div class="content-card">
-                        <div class="card-body">
-                            <div class="empty-state">
-                                <i class="fas fa-exclamation-triangle text-yellow-500 text-4xl mb-4"></i>
-                                <p class="text-gray-500">حدث خطأ في تحميل أفضل 10 ملاحظات</p>
-                                <button onclick="DailyObservations.load()" class="btn-primary mt-4">
-                                    <i class="fas fa-redo ml-2"></i>
-                                    إعادة المحاولة
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                `;
-            }
+            const [listResult, analysisResult, top10Result] = await Promise.all([
+                withTimeout(this.renderList(), listErrorHtml),
+                isAdmin ? withTimeout(this.renderDataAnalysis(), analysisErrorHtml) : Promise.resolve(''),
+                withTimeout(this.renderTop10Observations(), top10ErrorHtml)
+            ]);
+            let listContent = listResult || listErrorHtml;
+            let analysisContent = isAdmin ? (analysisResult || analysisErrorHtml) : '';
+            let top10Content = top10Result || top10ErrorHtml;
 
             section.innerHTML = `
                 <div class="section-header">

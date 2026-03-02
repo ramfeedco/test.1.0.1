@@ -10618,61 +10618,38 @@ const Clinic = {
             // هذا يضمن عدم وجود واجهة فارغة حتى لو فشل تحميل البيانات
             this.renderUI();
 
-            // ✅ تحسين: تحميل البيانات مباشرة في جميع الحالات بدون تأخير
-            // إذا كان التحميل الأول أو لا توجد بيانات محلية أو انتهت صلاحية الكاش، تحميل فوري
+            // ✅ تحسين سرعة التحميل: عدم انتظار syncDataFromServer في الخلفية
+            // التحميل ينتهي فوراً بعد عرض الواجهة؛ جلب البيانات يتم في الخلفية ثم تحديث الواجهة
             const shouldLoadData = isFirstLoad || !hasLocalData || cacheAge >= CACHE_DURATION;
             
             if (shouldLoadData) {
-                Utils.safeLog('🔄 تحميل بيانات العيادة من قاعدة البيانات...');
-
-                try {
-                    // ✅ تحسين: تقليل وقت الانتظار الأولي لتحميل أسرع
-                    await Utils.promiseWithTimeout(
-                        this.syncDataFromServer(),
-                        25000, // 25 ثانية (تحسين من 45 ثانية)
-                        'انتهت مهلة تحميل البيانات'
-                    );
-
-            // حفظ وقت آخر مزامنة
-            localStorage.setItem('clinic_last_sync', Date.now().toString());
-
-            // ✅ إعادة تطبيع البيانات بعد المزامنة
-            this.ensureData();
-
-            // تحديث الواجهة بالبيانات الجديدة مباشرة
-            this.renderUI();
-            
-            // ✅ إذا كان تبويب سجل التردد مفتوحاً، تحديثه مباشرة
-            if (this.state && this.state.activeTab === 'visits') {
-                setTimeout(() => {
-                    this.renderVisitsTab(false); // false = لا force reload لأن البيانات محملة بالفعل
-                }, 100);
-            }
-
+                Utils.safeLog('🔄 تحميل بيانات العيادة من قاعدة البيانات (في الخلفية)...');
+                Utils.promiseWithTimeout(
+                    this.syncDataFromServer(),
+                    25000,
+                    'انتهت مهلة تحميل البيانات'
+                ).then(() => {
+                    localStorage.setItem('clinic_last_sync', Date.now().toString());
+                    this.ensureData();
+                    this.renderUI();
+                    if (this.state && this.state.activeTab === 'visits') {
+                        setTimeout(() => this.renderVisitsTab(false), 100);
+                    }
                     if (typeof Utils !== 'undefined' && Utils.safeLog) {
                         const visitsCount = (AppState.appData.clinicVisits || []).length;
                         const medsCount = (AppState.appData.clinicMedications || AppState.appData.medications || []).length;
                         Utils.safeLog(`✅ تم تحميل مديول العيادة بنجاح: ${visitsCount} زيارة، ${medsCount} دواء`);
                     }
-                } catch (error) {
+                }).catch((error) => {
                     if (typeof Utils !== 'undefined' && Utils.safeWarn) {
-                        Utils.safeWarn('⚠️ تعذر تحميل بعض البيانات:', error.message);
-                    } else {
-                        console.warn('⚠️ تعذر تحميل بعض البيانات:', error.message);
+                        Utils.safeWarn('⚠️ تعذر تحميل بعض البيانات:', error && error.message);
                     }
-                    // الواجهة تبقى معروضة بالبيانات المحلية (إن وجدت)
-                }
-
-                // تعيين initialized كـ true بعد محاولة التحميل
-                this.state.initialized = true;
+                }).finally(() => {
+                    this.state.initialized = true;
+                });
             } else {
-                // في حالة وجود بيانات محلية سارية، الواجهة معروضة بالفعل
-                // لكن نحدث البيانات في الخلفية لضمان التزامن
                 Utils.safeLog('✅ عرض الواجهة بالبيانات المحفوظة محلياً - تحديث في الخلفية');
-                // تحديث البيانات في الخلفية بدون تأخير
                 this.syncDataInBackground();
-                
-                // تعيين initialized كـ true
                 this.state.initialized = true;
             }
 
