@@ -1,15 +1,25 @@
 # مراجعة النشر — التأكد من ظهور التحديثات
 
+## ✅ مزامنة مجلد النشر (بدون تكرار)
+
+مجلد **`vercel-deploy/frontend`** يجب أن يظل مطابقاً لـ **`Frontend`** في الملفات التالية (نسخ من Frontend → vercel-deploy/frontend):
+
+| الملف | الغرض |
+|--------|--------|
+| `index.html` | الهيكل، رابط التخطي، `#main-content` |
+| `styles.css` | التنسيقات الرئيسية، الموبايل، الستار والقائمة |
+| `styles-optimized.css` | نسخة محسّنة من التنسيقات |
+| `js/modules/app-ui.js` | واجهة التطبيق، إغلاق القائمة على الموبايل |
+| `UI-UX-COMPATIBILITY-REPORT.md` | تقرير توافق UI/UX |
+
+**لا يوجد تكرار:** كل ملف موجود مرة واحدة في `vercel-deploy/frontend`. عند التحديث في `Frontend`، انسخ الملفات أعلاه إلى `vercel-deploy/frontend` ثم ارفع إلى Git.
+
 ## ✅ التحقق من الرفع (Git)
 
-- **آخر commit:** `16aa262` — إصلاح زر الإشعارات في القائمة الجانبية
-- **الملفات المرفوعة في هذا الـ commit:**
-  - `Frontend/index.html`
-  - `Frontend/js/modules/app-ui.js`
-  - `vercel-deploy/frontend/index.html`
-  - `vercel-deploy/frontend/js/modules/app-ui.js`
+- **آخر مزامنة:** تم نسخ التحديثات من Frontend إلى vercel-deploy/frontend (رابط التخطي، إخفاء الستار، عرض القائمة على الموبايل، تبويبات المدولات، تقرير UI/UX).
+- **الملفات المرفوعة في مجلد النشر:** `index.html`, `styles.css`, `styles-optimized.css`, `js/modules/app-ui.js`, `UI-UX-COMPATIBILITY-REPORT.md`
 
-التحديثات **موجودة في المستودع** في مجلد `vercel-deploy/frontend` المخصّص للنشر.
+التحديثات **موجودة في مجلد النشر** `vercel-deploy/frontend` المخصّص لـ Vercel.
 
 ---
 
