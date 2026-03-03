@@ -1728,7 +1728,7 @@ const Incidents = {
                         <div style="text-align: center;">
                             <div style="margin-bottom: 8px; font-size: 0.9rem; font-weight: 600; color: #374151;">صورة توضيحية لمكان الحادث</div>
                             <div class="safety-alert-view-yellow-box">
-                                <img src="${alert.locationImage}" alt="صورة المكان" style="max-width: 100%; max-height: 350px; border-radius: 4px; object-fit: contain;">
+                                <img src="${this.convertGoogleDriveLinkToPrintable(alert.locationImage)}" alt="صورة المكان" style="max-width: 100%; max-height: 350px; border-radius: 4px; object-fit: contain;">
                             </div>
                         </div>
                         ` : '<div></div>'}
@@ -1736,7 +1736,7 @@ const Incidents = {
                         <div style="text-align: center;">
                             <div style="margin-bottom: 8px; font-size: 0.9rem; font-weight: 600; color: #374151;">صورة توضيحية لأسباب الحادث</div>
                             <div class="safety-alert-view-yellow-box">
-                                <img src="${alert.causesImage}" alt="صورة الأسباب" style="max-width: 100%; max-height: 350px; border-radius: 4px; object-fit: contain;">
+                                <img src="${this.convertGoogleDriveLinkToPrintable(alert.causesImage)}" alt="صورة الأسباب" style="max-width: 100%; max-height: 350px; border-radius: 4px; object-fit: contain;">
                             </div>
                         </div>
                         ` : ''}
@@ -2050,7 +2050,7 @@ const Incidents = {
                                     <input type="hidden" id="safety-alert-location-image" value="${alertData?.locationImage || ''}">
                                     ${alertData?.locationImage ? `
                                         <div id="safety-alert-location-image-preview">
-                                            <img src="${alertData.locationImage}" style="max-width: 100%; max-height: 350px; border-radius: 4px; object-fit: contain; display: block;">
+                                            <img src="${this.convertGoogleDriveLinkToPrintable(alertData.locationImage)}" style="max-width: 100%; max-height: 350px; border-radius: 4px; object-fit: contain; display: block;">
                                         </div>
                                     ` : `
                                         <label for="safety-alert-location-image-input" style="cursor: pointer; display: block; padding: 10px;">
@@ -2070,7 +2070,7 @@ const Incidents = {
                                     <input type="hidden" id="safety-alert-causes-image" value="${alertData?.causesImage || ''}">
                                     ${alertData?.causesImage ? `
                                         <div id="safety-alert-causes-image-preview">
-                                            <img src="${alertData.causesImage}" style="max-width: 100%; max-height: 350px; border-radius: 4px; object-fit: contain; display: block;">
+                                            <img src="${this.convertGoogleDriveLinkToPrintable(alertData.causesImage)}" style="max-width: 100%; max-height: 350px; border-radius: 4px; object-fit: contain; display: block;">
                                         </div>
                                     ` : `
                                         <label for="safety-alert-causes-image-input" style="cursor: pointer; display: block; padding: 10px;">
@@ -5675,7 +5675,7 @@ const Incidents = {
                                     </label>
                                     <input type="file" id="incident-image-input" accept="image/*" class="form-input">
                                     <div id="incident-image-preview" class="mt-2 ${incidentData?.image ? '' : 'hidden'}">
-                                        <img src="${incidentData?.image || ''}" alt="صورة الحادث" class="w-48 h-48 object-cover rounded border mt-2" id="incident-image-img">
+                                        <img src="${incidentData?.image ? this.convertGoogleDriveLinkToPrintable(incidentData.image) : ''}" alt="صورة الحادث" class="w-48 h-48 object-cover rounded border mt-2" id="incident-image-img">
                                         <button type="button" onclick="document.getElementById('incident-image-input').value=''; document.getElementById('incident-image-preview').classList.add('hidden');" class="mt-1 text-xs text-red-600">حذ الصورة</button>
                                     </div>
                                 </div>
@@ -7380,7 +7380,7 @@ const Incidents = {
                             <div class="col-span-2">
                                 <label class="text-sm font-semibold text-gray-600">صورة توضيحية:</label>
                                 <div class="mt-2">
-                                    <img src="${incident.image}" alt="صورة الحادث" class="max-w-full h-auto rounded border" style="max-height: 400px;">
+                                    <img src="${this.convertGoogleDriveLinkToPrintable(incident.image)}" alt="صورة الحادث" class="max-w-full h-auto rounded border" style="max-height: 400px;">
                                 </div>
                             </div>
                             ` : ''}
@@ -8311,7 +8311,7 @@ const Incidents = {
                         ${images.slice(0, maxImages).map((img, idx) => `
                             <div style="${imageContainerStyle}">
                                 <div style="${imageFrameStyle}">
-                                    <img src="${img}" alt="صورة ${idx + 1}" style="${imageStyle}" onerror="this.parentElement.innerHTML='<div style=\\'color: #999; font-size: 14px;\\'>فشل تحميل الصورة</div>';">
+                                    <img src="${this.convertGoogleDriveLinkToPrintable(img)}" alt="صورة ${idx + 1}" style="${imageStyle}" onerror="this.parentElement.innerHTML='<div style=\\'color: #999; font-size: 14px;\\'>فشل تحميل الصورة</div>';">
                                 </div>
                                 <div style="margin-top: 10px; font-size: 13px; color: #555; font-weight: 600;">صورة ${idx + 1}</div>
                             </div>
@@ -10494,21 +10494,25 @@ const Incidents = {
      */
     convertGoogleDriveLinkToPrintable(link) {
         if (!link) return '';
-        
+        if (typeof window.__convertGoogleDriveUrl === 'function') {
+            link = window.__convertGoogleDriveUrl(link);
+        }
         // إذا كان base64، استخدمه مباشرة
         if (link.startsWith('data:image/')) {
             return link;
         }
-        
-        // إذا كان رابط Google Drive، استخدم صيغة thumbnail (لا تحمّل uploadmanager.js)
+        // تطبيع روابط thumbnail المخزنة قديماً (w1000) → w400
+        if (link.includes('drive.google.com/thumbnail')) {
+            const m = link.match(/drive\.google\.com\/thumbnail\?id=([a-zA-Z0-9_-]+)/i);
+            if (m && m[1]) return `https://drive.google.com/thumbnail?id=${m[1]}&sz=w400`;
+        }
+        // إذا كان رابط Google Drive، استخدم صيغة thumbnail
         if (link.includes('drive.google.com')) {
             const fileIdMatch = link.match(/\/d\/([a-zA-Z0-9_-]+)/) || link.match(/id=([a-zA-Z0-9_-]+)/);
             if (fileIdMatch && fileIdMatch[1]) {
                 return `https://drive.google.com/thumbnail?id=${fileIdMatch[1]}&sz=w400`;
             }
         }
-        
-        // إذا كان رابط مباشر، استخدمه كما هو
         return link;
     },
 
