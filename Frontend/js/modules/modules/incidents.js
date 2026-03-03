@@ -10504,7 +10504,7 @@ const Incidents = {
         if (link.includes('drive.google.com')) {
             const fileIdMatch = link.match(/\/d\/([a-zA-Z0-9_-]+)/) || link.match(/id=([a-zA-Z0-9_-]+)/);
             if (fileIdMatch && fileIdMatch[1]) {
-                return `https://drive.google.com/thumbnail?id=${fileIdMatch[1]}&sz=w1000`;
+                return `https://drive.google.com/thumbnail?id=${fileIdMatch[1]}&sz=w400`;
             }
         }
         

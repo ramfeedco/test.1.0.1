@@ -86,6 +86,7 @@
             
             // ✅ LAYER -1: تحويل Google Drive URLs إلى صيغة thumbnail الآمنة
             // هذا يمنع تحميل uploadmanager.js من الأساس
+            // استخدام sz=w400 لتقليل احتمال 503 من خوادم Google
             window.__convertGoogleDriveUrl = function(url) {
                 if (!url || typeof url !== 'string') return url;
                 
@@ -93,17 +94,60 @@
                 // هذه الصيغة لا تحمّل uploadmanager.js
                 var driveUcMatch = url.match(/drive\.google\.com\/uc\?.*id=([a-zA-Z0-9_-]+)/i);
                 if (driveUcMatch && driveUcMatch[1]) {
-                    return 'https://drive.google.com/thumbnail?id=' + driveUcMatch[1] + '&sz=w1000';
+                    return 'https://drive.google.com/thumbnail?id=' + driveUcMatch[1] + '&sz=w400';
                 }
                 
                 // تحويل /file/d/ URLs
                 var driveFileMatch = url.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/i);
                 if (driveFileMatch && driveFileMatch[1]) {
-                    return 'https://drive.google.com/thumbnail?id=' + driveFileMatch[1] + '&sz=w1000';
+                    return 'https://drive.google.com/thumbnail?id=' + driveFileMatch[1] + '&sz=w400';
                 }
                 
                 return url;
             };
+            // معالجة فشل تحميل صور thumbnail (503 من Google) — استبدال ب placeholder
+            (function() {
+                var placeholderSvg = 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="200" height="120" viewBox="0 0 200 120"><rect fill="#f3f4f6" width="200" height="120"/><text x="100" y="65" text-anchor="middle" fill="#9ca3af" font-size="12" font-family="sans-serif">فشل تحميل الصورة</text></svg>');
+                function addThumbnailFallback(img) {
+                    if (!img || img.getAttribute('data-drive-thumbnail-handled')) return;
+                    if (!img.src || img.src.indexOf('drive.google.com/thumbnail') === -1) return;
+                    img.setAttribute('data-drive-thumbnail-handled', '1');
+                    img.onerror = function() {
+                        this.onerror = null;
+                        this.src = placeholderSvg;
+                        this.alt = this.alt || 'فشل تحميل الصورة';
+                    };
+                }
+                function runThumbnailFallbacks(root) {
+                    var imgs = (root || document).querySelectorAll ? (root || document).querySelectorAll('img[src*="drive.google.com/thumbnail"]') : [];
+                    for (var i = 0; i < imgs.length; i++) addThumbnailFallback(imgs[i]);
+                }
+                if (document.readyState === 'loading') {
+                    document.addEventListener('DOMContentLoaded', function() {
+                        runThumbnailFallbacks();
+                        var obs = new MutationObserver(function(mutations) {
+                            mutations.forEach(function(m) {
+                                if (m.addedNodes && m.addedNodes.length) for (var j = 0; j < m.addedNodes.length; j++) {
+                                    var n = m.addedNodes[j];
+                                    if (n.nodeType === 1) { runThumbnailFallbacks(n); if (n.querySelectorAll) runThumbnailFallbacks(n); }
+                                }
+                            });
+                        });
+                        obs.observe(document.body, { childList: true, subtree: true });
+                    });
+                } else {
+                    runThumbnailFallbacks();
+                    var obs = new MutationObserver(function(mutations) {
+                        mutations.forEach(function(m) {
+                            if (m.addedNodes && m.addedNodes.length) for (var j = 0; j < m.addedNodes.length; j++) {
+                                var n = m.addedNodes[j];
+                                if (n.nodeType === 1) { runThumbnailFallbacks(n); if (n.querySelectorAll) runThumbnailFallbacks(n); }
+                            }
+                        });
+                    });
+                    if (document.body) obs.observe(document.body, { childList: true, subtree: true });
+                }
+            })();
             
             // ✅ LAYER 0: حماية فورية - منع uploadmanager من القراءة على undefined (reading 'document')
             try {

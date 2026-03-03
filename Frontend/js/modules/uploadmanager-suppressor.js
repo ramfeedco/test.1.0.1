@@ -20,13 +20,13 @@
             // تحويل /uc?export=view URLs إلى /thumbnail
             var driveUcMatch = url.match(/drive\.google\.com\/uc\?.*id=([a-zA-Z0-9_-]+)/i);
             if (driveUcMatch && driveUcMatch[1]) {
-                return 'https://drive.google.com/thumbnail?id=' + driveUcMatch[1] + '&sz=w1000';
+                return 'https://drive.google.com/thumbnail?id=' + driveUcMatch[1] + '&sz=w400';
             }
             
             // تحويل /file/d/ URLs
             var driveFileMatch = url.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/i);
             if (driveFileMatch && driveFileMatch[1]) {
-                return 'https://drive.google.com/thumbnail?id=' + driveFileMatch[1] + '&sz=w1000';
+                return 'https://drive.google.com/thumbnail?id=' + driveFileMatch[1] + '&sz=w400';
             }
             
             return url;

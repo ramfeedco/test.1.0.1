@@ -1426,24 +1426,47 @@ const Users = {
         Loading.show();
 
         try {
-            AppState.appData.users = AppState.appData.users.filter(u => u.id !== userId);
-            // حفظ البيانات باستخدام window.DataManager
-        if (typeof window.DataManager !== 'undefined' && window.DataManager.save) {
-            window.DataManager.save();
-        } else {
-            Utils.safeWarn('⚠️ DataManager غير متاح - لم يتم حفظ البيانات');
-        }
+            let deleteSuccess = false;
 
-            // حفظ تلقائي في Google Sheets
+            // 1) حذف من قاعدة البيانات (Google Sheets) أولاً ثم تحديث الواجهة
             if (AppState.googleConfig.appsScript.enabled) {
                 try {
-                    await GoogleIntegration.sendToAppsScript('deleteUser', { userId });
+                    const result = await GoogleIntegration.sendToAppsScript('deleteUser', { userId });
+                    deleteSuccess = result && result.success === true;
+                    if (!deleteSuccess && result && result.message) {
+                        throw new Error(result.message);
+                    }
                 } catch (error) {
-                    Utils.safeWarn('⚠️ فشل حذف المستخدم من Google Sheets، سيتم المحاولة لاحقاً:', error);
-                    await GoogleIntegration.autoSave('Users', AppState.appData.users);
+                    // محاولة بديلة: حفظ قائمة المستخدمين بعد إزالة المستخدم
+                    const filteredUsers = AppState.appData.users.filter(u => u.id !== userId);
+                    try {
+                        await GoogleIntegration.autoSave('Users', filteredUsers);
+                        deleteSuccess = true;
+                    } catch (autoSaveErr) {
+                        Utils.safeWarn('⚠️ فشل الحذف من Google Sheets وبديل autoSave:', autoSaveErr);
+                        Loading.hide();
+                        Notification.error('فشل حذف المستخدم من قاعدة البيانات: ' + (error.message || error));
+                        Utils.safeError('خطأ في حذف المستخدم:', error);
+                        return;
+                    }
                 }
             } else {
-                await GoogleIntegration.autoSave('Users', AppState.appData.users);
+                await GoogleIntegration.autoSave('Users', AppState.appData.users.filter(u => u.id !== userId));
+                deleteSuccess = true;
+            }
+
+            if (!deleteSuccess) {
+                Loading.hide();
+                Notification.error('فشل حذف المستخدم من قاعدة البيانات');
+                return;
+            }
+
+            // 2) بعد نجاح الحذف في الخلفية: تحديث الحالة المحلية والحفظ المحلي
+            AppState.appData.users = AppState.appData.users.filter(u => u.id !== userId);
+            if (typeof window.DataManager !== 'undefined' && window.DataManager.save) {
+                window.DataManager.save();
+            } else {
+                Utils.safeWarn('⚠️ DataManager غير متاح - لم يتم حفظ البيانات');
             }
 
             Loading.hide();
@@ -1451,7 +1474,7 @@ const Users = {
             this.loadUsersList();
         } catch (error) {
             Loading.hide();
-            Notification.error('حدث خطأ: ' + error.message);
+            Notification.error('حدث خطأ: ' + (error && error.message ? error.message : String(error)));
             Utils.safeError('خطأ في حذف المستخدم:', error);
         }
     },
