@@ -4108,7 +4108,7 @@ const Training = {
                         <i class="fas fa-briefcase"></i>
                         ${existing ? 'تعديل تدريب مقاول' : 'تسجيل تدريب للمقاولين'}
                     </h2>
-                    <button class="modal-close" title="إغلاق" style="color: white; font-size: 1.3rem; opacity: 0.9; transition: all 0.2s; border-radius: 8px; padding: 8px 12px; position: absolute; left: 15px; top: 50%; transform: translateY(-50%);" onmouseover="this.style.opacity='1'; this.style.background='rgba(255,255,255,0.2)'" onmouseout="this.style.opacity='0.9'; this.style.background='transparent'">
+                    <button type="button" class="modal-close" title="إغلاق" style="color: white; font-size: 1.3rem; opacity: 0.9; transition: all 0.2s; border-radius: 8px; padding: 8px 12px; position: absolute; left: 15px; top: 50%; transform: translateY(-50%);" onmouseover="this.style.opacity='1'; this.style.background='rgba(255,255,255,0.2)'" onmouseout="this.style.opacity='0.9'; this.style.background='transparent'">
                         <i class="fas fa-times"></i>
                     </button>
                 </div>

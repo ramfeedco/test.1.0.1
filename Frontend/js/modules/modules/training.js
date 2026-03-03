@@ -4108,7 +4108,7 @@ const Training = {
                         <i class="fas fa-briefcase"></i>
                         ${existing ? 'تعديل تدريب مقاول' : 'تسجيل تدريب للمقاولين'}
                     </h2>
-                    <button class="modal-close" title="إغلاق" style="color: white; font-size: 1.3rem; opacity: 0.9; transition: all 0.2s; border-radius: 8px; padding: 8px 12px; position: absolute; left: 15px; top: 50%; transform: translateY(-50%);" onmouseover="this.style.opacity='1'; this.style.background='rgba(255,255,255,0.2)'" onmouseout="this.style.opacity='0.9'; this.style.background='transparent'">
+                    <button type="button" class="modal-close" title="إغلاق" style="color: white; font-size: 1.3rem; opacity: 0.9; transition: all 0.2s; border-radius: 8px; padding: 8px 12px; position: absolute; left: 15px; top: 50%; transform: translateY(-50%);" onmouseover="this.style.opacity='1'; this.style.background='rgba(255,255,255,0.2)'" onmouseout="this.style.opacity='0.9'; this.style.background='transparent'">
                         <i class="fas fa-times"></i>
                     </button>
                 </div>
@@ -4282,35 +4282,26 @@ const Training = {
         let isClosing = false;
         let handleEscKey = null;
         
-        // دالة إغلاق مبسطة وفورية
+        // دالة إغلاق فورية: إزالة النموذج من DOM أولاً ثم التنظيف (استجابة فورية من أول ضغطة)
         const close = (e) => {
-            if (isClosing) {
-                if (e) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                }
-                return;
-            }
-            
-            isClosing = true;
-            
             if (e) {
                 e.preventDefault();
                 e.stopPropagation();
             }
-            
-            // إزالة مستمع ESC فوراً
+            if (isClosing) return;
+            isClosing = true;
+
+            // إزالة النموذج فوراً من الصفحة (أولوية للاستجابة البصرية)
+            if (modal && modal.parentNode) {
+                modal.remove();
+            }
+            // إزالة مستمع ESC
             if (handleEscKey) {
                 document.removeEventListener('keydown', handleEscKey);
                 handleEscKey = null;
             }
-            
-            // إزالة النموذج فوراً بدون تأخير
-            if (modal && modal.parentNode) {
-                modal.remove();
-            }
         };
-        
+
         // منع انتشار الأحداث من محتوى النموذج إلى overlay
         const modalContent = modal.querySelector('.modal-content');
         if (modalContent) {
@@ -4318,8 +4309,7 @@ const Training = {
                 e.stopPropagation();
             });
         }
-        
-        // إغلاق من أول ضغطة (بدون نافذة تأكيد) لمنع الحاجة لضغط متكرر
+
         const doClose = (e) => {
             if (e) {
                 e.preventDefault();
@@ -4330,12 +4320,12 @@ const Training = {
 
         const closeBtn = modal.querySelector('.modal-close');
         if (closeBtn) {
-            closeBtn.addEventListener('click', doClose, { once: true });
+            closeBtn.addEventListener('click', doClose);
         }
 
         const closeFooterBtn = modal.querySelector('[data-action="close"]');
         if (closeFooterBtn) {
-            closeFooterBtn.addEventListener('click', doClose, { once: true });
+            closeFooterBtn.addEventListener('click', doClose);
         }
 
         // النقر خارج النموذج: إظهار رسالة ثم إغلاق عند النقر على overlay
