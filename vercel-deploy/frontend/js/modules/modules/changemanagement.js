@@ -151,6 +151,12 @@ const ChangeManagement = {
         }
 
         this.state._loadInProgress = true;
+        container.innerHTML = `
+            <div class="empty-state py-8" id="change-requests-loading">
+                <i class="fas fa-spinner fa-spin text-3xl text-blue-500 mb-3"></i>
+                <p class="text-gray-500">جاري تحميل الطلبات...</p>
+            </div>
+        `;
 
         try {
             const response = await GoogleIntegration.sendRequest({
@@ -264,7 +270,10 @@ const ChangeManagement = {
 
     showCreateForm() {
         const btn = document.getElementById('change-btn-add');
-        if (btn) { btn.disabled = true; setTimeout(() => { btn.disabled = false; }, 600); }
+        if (btn) {
+            btn.disabled = true;
+            setTimeout(() => { btn.disabled = false; }, 400);
+        }
         const docTypes = [
             'إجراءات عمل / تعليمات العمل',
             'دراسات تقييم المخاطر / القياسات البيئية',
@@ -870,11 +879,15 @@ const ChangeManagement = {
     },
 
     async showRequestDetail(requestId) {
+        const overlay = document.querySelector('.modal-overlay');
+        if (overlay) return;
+        if (typeof Loading !== 'undefined' && Loading.show) Loading.show('جاري تحميل التفاصيل...');
         try {
             const response = await GoogleIntegration.sendRequest({
                 action: 'getChangeRequest',
                 data: { requestId: requestId }
             });
+            if (typeof Loading !== 'undefined' && Loading.hide) Loading.hide();
             if (!response || !response.success || !response.data) {
                 if (typeof Notification !== 'undefined' && Notification.error) Notification.error('طلب التغيير غير موجود');
                 return;
@@ -955,6 +968,7 @@ const ChangeManagement = {
             `;
             document.body.appendChild(modal);
         } catch (err) {
+            if (typeof Loading !== 'undefined' && Loading.hide) Loading.hide();
             if (typeof Utils !== 'undefined' && Utils.safeError) Utils.safeError('showRequestDetail:', err);
             if (typeof Notification !== 'undefined' && Notification.error) Notification.error('حدث خطأ في تحميل التفاصيل');
         }
@@ -1017,12 +1031,18 @@ const ChangeManagement = {
 
     async showStatistics() {
         const btn = document.getElementById('change-btn-statistics');
-        if (btn) { btn.disabled = true; setTimeout(() => { btn.disabled = false; }, 800); }
+        const originalHtml = btn ? btn.innerHTML : '';
+        if (btn) {
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin ml-2"></i> جاري التحميل...';
+        }
+        if (typeof Loading !== 'undefined' && Loading.show) Loading.show('جاري تحميل الإحصائيات...');
         try {
             const response = await GoogleIntegration.sendRequest({
                 action: 'getChangeRequestStatistics',
                 data: { filters: this.buildFilters() }
             });
+            if (typeof Loading !== 'undefined' && Loading.hide) Loading.hide();
             if (!response || !response.success) {
                 if (typeof Notification !== 'undefined' && Notification.error) Notification.error('فشل تحميل الإحصائيات');
                 return;
@@ -1072,7 +1092,13 @@ const ChangeManagement = {
             `;
             document.body.appendChild(modal);
         } catch (err) {
+            if (typeof Loading !== 'undefined' && Loading.hide) Loading.hide();
             if (typeof Notification !== 'undefined' && Notification.error) Notification.error('حدث خطأ في تحميل الإحصائيات');
+        } finally {
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = originalHtml || '<i class="fas fa-chart-bar ml-2"></i> الإحصائيات';
+            }
         }
     },
 
