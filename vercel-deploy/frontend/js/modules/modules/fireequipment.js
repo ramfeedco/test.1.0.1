@@ -1585,7 +1585,6 @@ FireEquipment = {
         if (!Array.isArray(data.fireEquipmentInspections)) {
             data.fireEquipmentInspections = [];
         }
-        
         // نقل الفحوصات من الموقع القديم (fireEquipment) إلى الجديد (fireEquipmentInspections)
         // إذا كانت fireEquipment تحتوي على فحوصات (لها assetId و checkDate)
         if (Array.isArray(data.fireEquipment) && data.fireEquipment.length > 0) {

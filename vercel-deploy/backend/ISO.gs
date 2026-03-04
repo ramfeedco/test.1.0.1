@@ -497,12 +497,25 @@ function getDocumentCodes(filters) {
 var DOCUMENT_CODE_FIELDS = ['id', 'code', 'documentName', 'documentType', 'department', 'status', 'description', 'createdAt', 'updatedAt', 'createdBy'];
 
 /**
- * إضافة كود مستند جديد
+ * إضافة كود مستند جديد (مع التحقق من عدم تكرار الكود)
  */
 function addDocumentCodeToSheet(documentData) {
     try {
         if (!documentData || typeof documentData !== 'object') {
             return { success: false, message: 'بيانات الكود غير موجودة' };
+        }
+        var codeStr = (documentData.code || '').toString().trim();
+        if (!codeStr) {
+            return { success: false, message: 'حقل الكود مطلوب ولا يمكن تركه فارغاً.' };
+        }
+        var existing = readFromSheet('DocumentCodes', getSpreadsheetId());
+        if (existing && Array.isArray(existing)) {
+            var duplicate = existing.some(function(c) {
+                return (c.code || '').toString().trim().toLowerCase() === codeStr.toLowerCase();
+            });
+            if (duplicate) {
+                return { success: false, message: 'كود المستند موجود مسبقاً. يرجى استخدام كود فريد (مثل: DOC-001, FORM-002).', errorCode: 'DUPLICATE_CODE' };
+            }
         }
         var row = {};
         for (var i = 0; i < DOCUMENT_CODE_FIELDS.length; i++) {
@@ -548,6 +561,17 @@ function updateDocumentCode(codeId, updateData) {
             var key = DOCUMENT_CODE_FIELDS[i];
             if (updateData[key] !== undefined && updateData[key] !== null) {
                 filtered[key] = updateData[key];
+            }
+        }
+        if (filtered.code !== undefined) {
+            var newCodeStr = (filtered.code || '').toString().trim();
+            if (newCodeStr) {
+                var duplicate = data.some(function(c, idx) {
+                    return idx !== index && (c.code || '').toString().trim().toLowerCase() === newCodeStr.toLowerCase();
+                });
+                if (duplicate) {
+                    return { success: false, message: 'كود المستند موجود مسبقاً. يرجى استخدام كود فريد.', errorCode: 'DUPLICATE_CODE' };
+                }
             }
         }
         filtered.updatedAt = new Date();

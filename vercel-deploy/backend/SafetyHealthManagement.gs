@@ -171,8 +171,9 @@ function getSafetyTeamMember(memberId) {
         }
         
         var member = null;
+        var memberIdStr = String(memberId);
         for (var i = 0; i < data.length; i++) {
-            if (data[i].id === memberId) {
+            if (data[i] && String(data[i].id) === memberIdStr) {
                 member = data[i];
                 break;
             }
@@ -397,7 +398,7 @@ function getJobDescription(memberId) {
         
         var jobDescription = null;
         for (var i = 0; i < data.length; i++) {
-            if (data[i].memberId === memberId || data[i].employeeId === memberId) {
+            if (String(data[i].memberId) === String(memberId) || String(data[i].employeeId) === String(memberId)) {
                 jobDescription = data[i];
                 break;
             }
@@ -741,12 +742,20 @@ function getSafetyTeamKPIs(memberId, period = null) {
         }
         
         let filteredData = data.filter(function(kpi) {
-            return kpi && kpi.memberId === memberId;
+            if (!kpi) return false;
+            return String(kpi.memberId) === String(memberId);
         });
         
         if (period) {
             filteredData = filteredData.filter(function(kpi) {
                 return kpi.period === period;
+            });
+        } else if (filteredData.length > 1) {
+            // عند عدم تحديد الفترة: ترتيب تنازلي حسب الفترة (الأحدث أولاً)
+            filteredData = filteredData.slice().sort(function(a, b) {
+                var pA = (a.period || '').toString();
+                var pB = (b.period || '').toString();
+                return pB.localeCompare(pA);
             });
         }
         
@@ -961,8 +970,15 @@ function generateSafetyTeamPerformanceReport(memberId, startDate = null, endDate
             endDate = new Date();
         }
         
-        // حساب مؤشرات الأداء
-        const kpiResult = calculateSafetyTeamKPIs(memberId);
+        // حساب مؤشرات الأداء لفترة التقرير (شهر بداية startDate) لضمان اتساق البيانات
+        var reportPeriod = null;
+        if (startDate) {
+            var startObj = new Date(startDate);
+            var y = startObj.getFullYear();
+            var m = String(startObj.getMonth() + 1);
+            reportPeriod = y + '-' + (m.length === 1 ? '0' + m : m);
+        }
+        const kpiResult = calculateSafetyTeamKPIs(memberId, reportPeriod);
         var kpis = {};
         if (kpiResult.success) {
             kpis = kpiResult.data;
@@ -972,22 +988,30 @@ function generateSafetyTeamPerformanceReport(memberId, startDate = null, endDate
         var startDateObj = new Date(startDate);
         var endDateObj = new Date(endDate);
         
+        var mid = String(memberId);
         var inspections = readFromSheet('PeriodicInspectionRecords', spreadsheetId).filter(function(record) {
-            if (record.inspector !== memberId || !record.inspectionDate) return false;
+            if (!record.inspectionDate) return false;
+            if (String(record.inspector) !== mid && String(record.responsible || '') !== mid) return false;
             var recordDate = new Date(record.inspectionDate);
             return recordDate >= startDateObj && recordDate <= endDateObj;
         });
         
         var actions = readFromSheet('ActionTrackingRegister', spreadsheetId).filter(function(record) {
-            if (record.responsible !== memberId || !record.createdAt) return false;
+            if (!record.createdAt) return false;
+            if (String(record.responsible || '') !== mid && String(record.assignedTo || '') !== mid) return false;
             var recordDate = new Date(record.createdAt);
             return recordDate >= startDateObj && recordDate <= endDateObj;
         });
         
         var observations = readFromSheet('DailyObservations', spreadsheetId).filter(function(obs) {
-            if (obs.supervisor !== memberId || !obs.date) return false;
+            if (!obs.date) return false;
             var obsDate = new Date(obs.date);
-            return obsDate >= startDateObj && obsDate <= endDateObj;
+            if (obsDate < startDateObj || obsDate > endDateObj) return false;
+            if (obs.supervisor != null && String(obs.supervisor) === mid) return true;
+            if (obs.responsible != null && String(obs.responsible) === mid) return true;
+            if (obs.reportedBy != null && String(obs.reportedBy) === mid) return true;
+            if (obs.observerName != null && member.name && String(obs.observerName).trim() === String(member.name).trim()) return true;
+            return false;
         });
         
         var trainings = readFromSheet('Training', spreadsheetId).filter(function(training) {
@@ -995,19 +1019,13 @@ function generateSafetyTeamPerformanceReport(memberId, startDate = null, endDate
             var trainingDate = new Date(training.startDate);
             if (trainingDate < startDateObj || trainingDate > endDateObj) return false;
             
-            if (training.trainer === memberId) return true;
-            
+            if (training.trainer != null && String(training.trainer) === mid) return true;
             if (training.participants && typeof training.participants === 'string') {
                 try {
                     var participants = JSON.parse(training.participants);
-                    if (Array.isArray(participants) && participants.indexOf(memberId) !== -1) {
-                        return true;
-                    }
-                } catch (e) {
-                    if (training.participants.indexOf(memberId) !== -1) {
-                        return true;
-                    }
-                }
+                    if (Array.isArray(participants) && participants.some(function(p) { return p != null && (String(p) === mid || (typeof p === 'object' && p.id != null && String(p.id) === mid)); })) return true;
+                } catch (e) {}
+                if (training.participants.indexOf(mid) !== -1) return true;
             }
             return false;
         });
@@ -1035,7 +1053,7 @@ function generateSafetyTeamPerformanceReport(memberId, startDate = null, endDate
                 totalObservations: activities.observations.length,
                 totalTrainings: activities.trainings.length,
                 closedActions: activities.actions.filter(function(a) {
-                    return a.status === 'مكتمل';
+                    return a.status === 'مكتمل' || a.status === 'مغلق' || a.status === 'completed';
                 }).length,
                 commitmentRate: kpis.commitmentRate || 0
             },
@@ -1245,6 +1263,142 @@ function getSafetyTeamLeaves(memberId, startDate = null, endDate = null) {
     } catch (error) {
         Logger.log('Error in getSafetyTeamLeaves: ' + error.toString());
         return { success: false, message: 'حدث خطأ أثناء الحصول على سجل الإجازات: ' + error.toString(), data: [] };
+    }
+}
+
+/**
+ * حذف سجل حضور
+ */
+function deleteSafetyTeamAttendance(attendanceId) {
+    try {
+        if (!attendanceId) {
+            return { success: false, message: 'معرف سجل الحضور غير محدد' };
+        }
+        const sheetName = 'SafetyTeamAttendance';
+        const spreadsheetId = getSpreadsheetId();
+        const data = readFromSheet(sheetName, spreadsheetId);
+        if (!data || data.length === 0) {
+            return { success: false, message: 'سجل الحضور غير موجود' };
+        }
+        const filteredData = data.filter(function(record) {
+            return record && record.id !== attendanceId;
+        });
+        if (filteredData.length === data.length) {
+            return { success: false, message: 'سجل الحضور غير موجود' };
+        }
+        return saveToSheet(sheetName, filteredData, spreadsheetId);
+    } catch (error) {
+        Logger.log('Error in deleteSafetyTeamAttendance: ' + error.toString());
+        return { success: false, message: 'حدث خطأ أثناء حذف سجل الحضور: ' + error.toString() };
+    }
+}
+
+/**
+ * تحديث سجل حضور
+ */
+function updateSafetyTeamAttendance(attendanceId, updateData) {
+    try {
+        if (!attendanceId || !updateData) {
+            return { success: false, message: 'معرف سجل الحضور أو بيانات التحديث غير محددة' };
+        }
+        const sheetName = 'SafetyTeamAttendance';
+        const spreadsheetId = getSpreadsheetId();
+        const data = readFromSheet(sheetName, spreadsheetId);
+        var recordIndex = -1;
+        for (var i = 0; i < data.length; i++) {
+            if (data[i] && data[i].id === attendanceId) {
+                recordIndex = i;
+                break;
+            }
+        }
+        if (recordIndex === -1) {
+            return { success: false, message: 'سجل الحضور غير موجود' };
+        }
+        updateData.updatedAt = new Date();
+        for (var key in updateData) {
+            if (updateData.hasOwnProperty(key)) {
+                data[recordIndex][key] = updateData[key];
+            }
+        }
+        if (updateData.checkIn && updateData.checkOut) {
+            try {
+                var checkIn = new Date(updateData.checkIn);
+                var checkOut = new Date(updateData.checkOut);
+                data[recordIndex].workDuration = Math.round(((checkOut - checkIn) / (1000 * 60 * 60)) * 100) / 100;
+            } catch (e) {}
+        }
+        return saveToSheet(sheetName, data, spreadsheetId);
+    } catch (error) {
+        Logger.log('Error in updateSafetyTeamAttendance: ' + error.toString());
+        return { success: false, message: 'حدث خطأ أثناء تحديث سجل الحضور: ' + error.toString() };
+    }
+}
+
+/**
+ * حذف سجل إجازة
+ */
+function deleteSafetyTeamLeave(leaveId) {
+    try {
+        if (!leaveId) {
+            return { success: false, message: 'معرف سجل الإجازة غير محدد' };
+        }
+        const sheetName = 'SafetyTeamLeaves';
+        const spreadsheetId = getSpreadsheetId();
+        const data = readFromSheet(sheetName, spreadsheetId);
+        if (!data || data.length === 0) {
+            return { success: false, message: 'سجل الإجازة غير موجود' };
+        }
+        const filteredData = data.filter(function(record) {
+            return record && record.id !== leaveId;
+        });
+        if (filteredData.length === data.length) {
+            return { success: false, message: 'سجل الإجازة غير موجود' };
+        }
+        return saveToSheet(sheetName, filteredData, spreadsheetId);
+    } catch (error) {
+        Logger.log('Error in deleteSafetyTeamLeave: ' + error.toString());
+        return { success: false, message: 'حدث خطأ أثناء حذف سجل الإجازة: ' + error.toString() };
+    }
+}
+
+/**
+ * تحديث سجل إجازة
+ */
+function updateSafetyTeamLeave(leaveId, updateData) {
+    try {
+        if (!leaveId || !updateData) {
+            return { success: false, message: 'معرف سجل الإجازة أو بيانات التحديث غير محددة' };
+        }
+        const sheetName = 'SafetyTeamLeaves';
+        const spreadsheetId = getSpreadsheetId();
+        const data = readFromSheet(sheetName, spreadsheetId);
+        var recordIndex = -1;
+        for (var i = 0; i < data.length; i++) {
+            if (data[i] && data[i].id === leaveId) {
+                recordIndex = i;
+                break;
+            }
+        }
+        if (recordIndex === -1) {
+            return { success: false, message: 'سجل الإجازة غير موجود' };
+        }
+        updateData.updatedAt = new Date();
+        for (var key in updateData) {
+            if (updateData.hasOwnProperty(key)) {
+                data[recordIndex][key] = updateData[key];
+            }
+        }
+        if (updateData.startDate && updateData.endDate) {
+            try {
+                var start = new Date(updateData.startDate);
+                var end = new Date(updateData.endDate);
+                data[recordIndex].daysCount = Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1;
+            } catch (e) {}
+        }
+        return saveToSheet(sheetName, data, spreadsheetId);
+    } catch (error) {
+        Logger.log('Error in updateSafetyTeamLeave: ' + error.toString());
+        return { success: false, message: 'حدث خطأ أثناء تحديث سجل الإجازة: ' + error.toString() };
     }
 }
 
@@ -1680,9 +1834,10 @@ function calculateCustomKPI(memberId, kpi, period = null) {
             return 0;
         }
         
-        // فلترة السجلات حسب الفترة والعضو
+        // فلترة السجلات حسب الفترة والعضو (متوافقة مع حقول كل موديول)
+        var mid = String(memberId);
         var filteredRecords = records.filter(function(record) {
-            // التحقق من التاريخ
+            // التحقق من التاريخ حسب نوع السجل
             var recordDate = null;
             if (record.date) {
                 recordDate = new Date(record.date);
@@ -1692,6 +1847,8 @@ function calculateCustomKPI(memberId, kpi, period = null) {
                 recordDate = new Date(record.startDate);
             } else if (record.createdAt) {
                 recordDate = new Date(record.createdAt);
+            } else if (record.updatedAt) {
+                recordDate = new Date(record.updatedAt);
             }
             
             if (!recordDate) return false;
@@ -1699,28 +1856,28 @@ function calculateCustomKPI(memberId, kpi, period = null) {
             var recordPeriod = Utilities.formatDate(recordDate, Session.getScriptTimeZone(), 'yyyy-MM');
             if (recordPeriod !== period) return false;
             
-            // التحقق من العضو
-            if (record.memberId === memberId || 
-                record.reportedBy === memberId || 
-                record.responsible === memberId ||
-                record.inspectedBy === memberId ||
-                record.createdBy === memberId ||
-                (record.assignedTo && record.assignedTo === memberId)) {
-                return true;
-            }
+            // التحقق من العضو حسب الموديول (نفس منطق calculateSafetyTeamKPIs)
+            if (record.memberId === memberId || record.memberId == mid) return true;
+            if (record.reportedBy === memberId || String(record.reportedBy) === mid) return true;
+            if (record.responsible === memberId || String(record.responsible) === mid) return true;
+            if (record.assignedTo && (record.assignedTo === memberId || String(record.assignedTo) === mid)) return true;
+            if (record.inspector === memberId || String(record.inspector) === mid) return true;
+            if (record.supervisor === memberId || String(record.supervisor) === mid) return true;
+            if (record.trainer === memberId || String(record.trainer) === mid) return true;
+            if (record.createdBy === memberId || String(record.createdBy) === mid) return true;
+            if (record.inspectedBy === memberId || String(record.inspectedBy) === mid) return true;
+            if (record.approvedBy === memberId || String(record.approvedBy) === mid) return true;
             
-            // التحقق من قائمة المشاركين (للتدريب)
+            // المشاركون (للتدريب)
             if (record.participants) {
                 try {
                     var participants = typeof record.participants === 'string' ? 
                         JSON.parse(record.participants) : record.participants;
-                    if (Array.isArray(participants) && participants.indexOf(memberId) !== -1) {
+                    if (Array.isArray(participants) && participants.some(function(p) { return p != null && (String(p) === mid || (typeof p === 'object' && p.id != null && String(p.id) === mid)); })) {
                         return true;
                     }
                 } catch (e) {
-                    if (typeof record.participants === 'string' && record.participants.indexOf(memberId) !== -1) {
-                        return true;
-                    }
+                    if (typeof record.participants === 'string' && record.participants.indexOf(mid) !== -1) return true;
                 }
             }
             

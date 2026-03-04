@@ -593,7 +593,7 @@ const PeriodicInspections = {
                 });
                 dataUpdated = true;
                 Utils.safeLog(`✅ تم تحميل ${inspectionResult.data.length} فحص دوري من Google Sheets`);
-} else {
+            } else {
                 // التأكد من وجود مصفوفة فارغة إذا لم يتم تحميل البيانات
                 if (!AppState.appData.periodicInspections) {
                     AppState.appData.periodicInspections = [];
@@ -620,7 +620,7 @@ const PeriodicInspections = {
             } else if (!AppState.appData.dailySafetyCheckList) {
                 AppState.appData.dailySafetyCheckList = [];
             }
-
+            
             // تحديث الواجهة دائماً بعد التحميل (حتى لو لم يتم تحديث البيانات)
             // هذا يضمن عدم بقاء الواجهة فارغة
             if (this.state.currentView !== 'form' && this.state.currentView !== 'edit') {
@@ -2907,6 +2907,7 @@ const PeriodicInspections = {
         const records = this.getDailySafetyCheckListRecords();
         const stats = this.getDailySafetyCheckListStats(records);
         return `
+            <!-- إحصائيات قائمة الفحص اليومي للسلامة -->
             <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
                 <div class="content-card bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200">
                     <div class="card-body">
@@ -2961,6 +2962,7 @@ const PeriodicInspections = {
                     </div>
                 </div>
             </div>
+            <!-- شريط العنوان والأزرار أسفل الكروت - بنفس شكل الصورة (عنوان + عنوان فرعي ثم أزرار محاذاة لليمين) -->
             <div class="mb-4" style="direction:rtl; text-align:right;">
                 <div class="flex flex-col items-end gap-2 mb-3">
                     <h3 class="text-xl font-bold text-gray-900 m-0" style="display:flex; align-items:center; gap:0.5rem;"><i class="fas fa-tasks" style="color:#1e40af;"></i>سجل المرور اليومي للسلامة</h3>
@@ -3023,15 +3025,24 @@ const PeriodicInspections = {
         }
     },
 
+    /**
+     * تصدير سجل Daily Safety Check List بالكامل إلى Excel
+     */
     exportDailySafetyCheckListFullExcel() {
         const records = this.getDailySafetyCheckListRecords();
-        if (!records || records.length === 0) { Notification.warning('لا توجد سجلات لتصديرها'); return; }
+        if (!records || records.length === 0) {
+            Notification.warning('لا توجد سجلات لتصديرها');
+            return;
+        }
         const fieldToRecordKey = { q16: 'q15Reading', q17: 'q16', q18: 'q17' };
         const headers = ['رقم التسلسل', 'المصنع/الموقع', 'التاريخ', 'القائم بالمرور', 'الوردية', 'الملاحظات'].concat(this.DAILY_SAFETY_CHECKLIST_QUESTIONS.map(q => q.label));
-        const rows = records.sort((a, b) => new Date(b.date || b.createdAt) - new Date(a.date || a.createdAt)).map((r) => {
+        const rows = records.sort((a, b) => new Date(b.date || b.createdAt) - new Date(a.date || a.createdAt)).map((r, idx) => {
             const serial = this.getDailySafetyCheckListSerialNumber(r);
             const base = [serial, Utils.escapeHTML(r.siteName || ''), r.date ? Utils.formatDate(r.date) : '', Utils.escapeHTML(r.inspectorName || ''), Utils.escapeHTML(r.shift || ''), Utils.escapeHTML((r.notes || '').replace(/\r?\n/g, ' '))];
-            const qVals = this.DAILY_SAFETY_CHECKLIST_QUESTIONS.map(q => { const key = fieldToRecordKey[q.key] || q.key; return Utils.escapeHTML(String(r[key] != null ? r[key] : '')); });
+            const qVals = this.DAILY_SAFETY_CHECKLIST_QUESTIONS.map(q => {
+                const key = fieldToRecordKey[q.key] || q.key;
+                return Utils.escapeHTML(String(r[key] != null ? r[key] : ''));
+            });
             return base.concat(qVals);
         });
         const csvContent = '\uFEFF' + [headers.join('\t'), ...rows.map(row => row.join('\t'))].join('\r\n');
@@ -3047,9 +3058,15 @@ const PeriodicInspections = {
         Notification.success('تم تصدير السجل إلى Excel بنجاح');
     },
 
+    /**
+     * تصدير سجل Daily Safety Check List بالكامل إلى PDF (ملف .pdf فعلي عند توفر jsPDF، وإلا نافذة طباعة لحفظ كـ PDF)
+     */
     exportDailySafetyCheckListFullPDF() {
         const records = this.getDailySafetyCheckListRecords();
-        if (!records || records.length === 0) { Notification.warning('لا توجد سجلات لتصديرها'); return; }
+        if (!records || records.length === 0) {
+            Notification.warning('لا توجد سجلات لتصديرها');
+            return;
+        }
         const fieldToRecordKey = { q16: 'q15Reading', q17: 'q16', q18: 'q17' };
         if (typeof window.jsPDF !== 'undefined' && typeof window.jsPDF.jsPDF !== 'undefined') {
             try {
@@ -3062,32 +3079,76 @@ const PeriodicInspections = {
                 const headRow = ['رقم', 'الموقع', 'التاريخ', 'القائم بالمرور', 'الوردية'].concat(this.DAILY_SAFETY_CHECKLIST_QUESTIONS.map(q => (q.label.length > 22 ? q.label.substring(0, 22) + '..' : q.label)));
                 const bodyRows = records.sort((a, b) => new Date(b.date || b.createdAt) - new Date(a.date || a.createdAt)).map(r => {
                     const serial = this.getDailySafetyCheckListSerialNumber(r);
-                    const qVals = this.DAILY_SAFETY_CHECKLIST_QUESTIONS.map(q => { const key = fieldToRecordKey[q.key] || q.key; const v = r[key] != null ? String(r[key]) : '-'; return v.length > 8 ? v.substring(0, 8) + '..' : v; });
+                    const qVals = this.DAILY_SAFETY_CHECKLIST_QUESTIONS.map(q => {
+                        const key = fieldToRecordKey[q.key] || q.key;
+                        const v = r[key] != null ? String(r[key]) : '-';
+                        return v.length > 8 ? v.substring(0, 8) + '..' : v;
+                    });
                     return [serial, (r.siteName || '-').substring(0, 12), r.date ? Utils.formatDate(r.date) : '-', (r.inspectorName || '-').substring(0, 10), (r.shift || '-')].concat(qVals);
                 });
                 if (typeof doc.autoTable !== 'undefined') {
-                    doc.autoTable({ head: [headRow], body: bodyRows, startY: 24, styles: { fontSize: 6, cellPadding: 1 }, headStyles: { fillColor: [0, 56, 104], textColor: 255, fontSize: 6 } });
+                    doc.autoTable({
+                        head: [headRow],
+                        body: bodyRows,
+                        startY: 24,
+                        styles: { fontSize: 6, cellPadding: 1 },
+                        headStyles: { fillColor: [0, 56, 104], textColor: 255, fontSize: 6 }
+                    });
                 } else {
                     let y = 24;
-                    bodyRows.forEach((row) => { if (y > 190) { doc.addPage('l', 'a4'); y = 20; } doc.setFontSize(6); doc.text(row.slice(0, 5).join(' | '), 14, y); y += 5; });
+                    bodyRows.forEach((row, i) => {
+                        if (y > 190) { doc.addPage('l', 'a4'); y = 20; }
+                        doc.setFontSize(6);
+                        doc.text(row.slice(0, 5).join(' | '), 14, y);
+                        y += 5;
+                    });
                 }
-                doc.save('DailySafetyCheckList_Full_' + new Date().toISOString().slice(0, 10) + '.pdf');
+                const fileName = `DailySafetyCheckList_Full_${new Date().toISOString().slice(0, 10)}.pdf`;
+                doc.save(fileName);
                 Notification.success('تم تصدير السجل إلى PDF بنجاح');
                 return;
-            } catch (e) { Utils.safeWarn && Utils.safeWarn('تصدير PDF بـ jsPDF فشل، استخدام نافذة الطباعة:', e); }
+            } catch (e) {
+                Utils.safeWarn('تصدير PDF بـ jsPDF فشل، استخدام نافذة الطباعة:', e);
+            }
         }
         const fullTableRows = records.sort((a, b) => new Date(b.date || b.createdAt) - new Date(a.date || a.createdAt)).map(r => {
             const serial = this.getDailySafetyCheckListSerialNumber(r);
-            const qCells = this.DAILY_SAFETY_CHECKLIST_QUESTIONS.map(q => { const key = fieldToRecordKey[q.key] || q.key; const v = r[key] != null ? String(r[key]) : '-'; return `<td style="padding:4px; border:1px solid #ddd; font-size:10px;">${Utils.escapeHTML(v)}</td>`; }).join('');
+            const qCells = this.DAILY_SAFETY_CHECKLIST_QUESTIONS.map(q => {
+                const key = fieldToRecordKey[q.key] || q.key;
+                const v = r[key] != null ? String(r[key]) : '-';
+                return `<td style="padding:4px; border:1px solid #ddd; font-size:10px;">${Utils.escapeHTML(v)}</td>`;
+            }).join('');
             return `<tr><td style="padding:4px; border:1px solid #ddd;">${Utils.escapeHTML(serial)}</td><td style="padding:4px; border:1px solid #ddd;">${Utils.escapeHTML(r.siteName || '-')}</td><td style="padding:4px; border:1px solid #ddd;">${r.date ? Utils.formatDate(r.date) : '-'}</td><td style="padding:4px; border:1px solid #ddd;">${Utils.escapeHTML(r.inspectorName || '-')}</td><td style="padding:4px; border:1px solid #ddd;">${Utils.escapeHTML(r.shift || '-')}</td>${qCells}</tr>`;
         }).join('');
         const qHeaders = this.DAILY_SAFETY_CHECKLIST_QUESTIONS.map(q => `<th style="padding:4px; border:1px solid #ddd; background:#003865; color:#fff; font-size:10px;">${Utils.escapeHTML(q.label)}</th>`).join('');
-        const content = `<p style="text-align:center; margin:0 0 12px 0; font-weight:bold;">تصدير كامل لسجل قائمة الفحص اليومي للسلامة (${records.length} سجل)</p><table style="width:100%; border-collapse:collapse; font-size:11px;"><thead><tr style="background:#003865; color:#fff;"><th style="padding:6px; border:1px solid #ddd;">رقم التقرير</th><th style="padding:6px; border:1px solid #ddd;">المصنع/الموقع</th><th style="padding:6px; border:1px solid #ddd;">التاريخ</th><th style="padding:6px; border:1px solid #ddd;">القائم بالمرور</th><th style="padding:6px; border:1px solid #ddd;">الوردية</th>${qHeaders}</tr></thead><tbody>${fullTableRows}</tbody></table>`;
+        const content = `
+            <p style="text-align:center; margin:0 0 12px 0; font-weight:bold;">تصدير كامل لسجل قائمة الفحص اليومي للسلامة (${records.length} سجل)</p>
+            <table style="width:100%; border-collapse:collapse; font-size:11px;">
+                <thead>
+                    <tr style="background:#003865; color:#fff;">
+                        <th style="padding:6px; border:1px solid #ddd;">رقم التقرير</th>
+                        <th style="padding:6px; border:1px solid #ddd;">المصنع/الموقع</th>
+                        <th style="padding:6px; border:1px solid #ddd;">التاريخ</th>
+                        <th style="padding:6px; border:1px solid #ddd;">القائم بالمرور</th>
+                        <th style="padding:6px; border:1px solid #ddd;">الوردية</th>
+                        ${qHeaders}
+                    </tr>
+                </thead>
+                <tbody>${fullTableRows}</tbody>
+            </table>
+        `;
         const formTitle = 'سجل قائمة الفحص اليومي للسلامة - تصدير كامل';
-        const htmlContent = typeof FormHeader !== 'undefined' && FormHeader.generatePDFHTML ? FormHeader.generatePDFHTML('DSC-FULL-' + new Date().toISOString().slice(0, 10), formTitle, content, false, true, { source: 'DailySafetyCheckList', titleEn: 'Daily Safety Check List', titleAr: 'قائمة الفحص اليومي للسلامة' }, new Date().toISOString(), new Date().toISOString()) : `<!DOCTYPE html><html dir="rtl" lang="ar"><head><meta charset="UTF-8"><title>${formTitle}</title></head><body style="font-family:Arial,Tahoma,sans-serif;direction:rtl;padding:20px;">${content}</body></html>`;
+        const htmlContent = typeof FormHeader !== 'undefined' && FormHeader.generatePDFHTML
+            ? FormHeader.generatePDFHTML('DSC-FULL-' + new Date().toISOString().slice(0, 10), formTitle, content, false, true, { source: 'DailySafetyCheckList', titleEn: 'Daily Safety Check List', titleAr: 'قائمة الفحص اليومي للسلامة' }, new Date().toISOString(), new Date().toISOString())
+            : `<!DOCTYPE html><html dir="rtl" lang="ar"><head><meta charset="UTF-8"><title>${formTitle}</title></head><body style="font-family:Arial,Tahoma,sans-serif;direction:rtl;padding:20px;">${content}</body></html>`;
         const url = URL.createObjectURL(new Blob(['\ufeff' + htmlContent], { type: 'text/html;charset=utf-8' }));
         const w = window.open(url, '_blank');
-        if (w) { w.onload = () => { setTimeout(() => { w.print(); URL.revokeObjectURL(url); }, 300); }; Notification.info('استخدم "حفظ كـ PDF" في نافذة الطباعة لإنشاء ملف PDF'); } else { Notification.error('يرجى السماح للنوافذ المنبثقة لفتح التقرير'); }
+        if (w) {
+            w.onload = () => { setTimeout(() => { w.print(); URL.revokeObjectURL(url); }, 300); };
+            Notification.info('استخدم "حفظ كـ PDF" في نافذة الطباعة لإنشاء ملف PDF');
+        } else {
+            Notification.error('يرجى السماح للنوافذ المنبثقة لفتح التقرير');
+        }
     },
 
     DAILY_SAFETY_CHECKLIST_QUESTIONS: [
@@ -3194,6 +3255,10 @@ const PeriodicInspections = {
         modal.querySelector('#dsc-save-btn').addEventListener('click', () => this.saveDailySafetyCheckListRecord(modal, record ? record.id : null));
     },
 
+    /**
+     * رقم تسلسلي للتقرير: DD-SH-NO (اليوم-الوردية-الرقم)
+     * DD = يوم الشهر (رقمان)، SH = كود الوردية (1/2/3)، NO = ترتيب السجل لنفس اليوم والوردية
+     */
     getDailySafetyCheckListSerialNumber(record) {
         if (!record) return '00-0-0';
         const dateStr = (record.date && String(record.date).slice(0, 10)) || '';
@@ -3210,6 +3275,9 @@ const PeriodicInspections = {
         return `${day}-${sh}-${no}`;
     },
 
+    /**
+     * عرض سجل Daily Safety Check List بالكامل مع أزرار الطباعة والتصدير والتعديل والحذف
+     */
     showDailySafetyCheckListView(recordId) {
         const record = this.getDailySafetyCheckListRecords().find(r => r.id === recordId);
         if (!record) { Notification.error('السجل غير موجود'); return; }
@@ -3273,6 +3341,9 @@ const PeriodicInspections = {
         document.body.appendChild(modal);
     },
 
+    /**
+     * محتوى HTML للطباعة/التصدير (بدون هيدر/فوتر) لسجل Daily Safety Check List
+     */
     getDailySafetyCheckListRecordPrintContent(record) {
         if (!record) return '';
         const serialNo = this.getDailySafetyCheckListSerialNumber(record);
@@ -3354,26 +3425,51 @@ const PeriodicInspections = {
                     return [String(idx + 1), q.label.substring(0, 55) + (q.label.length > 55 ? '...' : ''), val];
                 });
                 if (typeof doc.autoTable !== 'undefined') {
-                    doc.autoTable({ head: [['#', 'البنود', 'الإجابة']], body: tableBody, startY: 65, styles: { fontSize: 8, cellPadding: 2 }, headStyles: { fillColor: [59, 130, 246], textColor: 255 }, columnStyles: { 0: { cellWidth: 10 }, 1: { cellWidth: 110 }, 2: { cellWidth: 70 } } });
+                    doc.autoTable({
+                        head: [['#', 'البنود', 'الإجابة']],
+                        body: tableBody,
+                        startY: 65,
+                        styles: { fontSize: 8, cellPadding: 2 },
+                        headStyles: { fillColor: [59, 130, 246], textColor: 255 },
+                        columnStyles: { 0: { cellWidth: 10 }, 1: { cellWidth: 110 }, 2: { cellWidth: 70 } }
+                    });
                 } else {
                     let y = 65;
-                    tableBody.forEach((row) => { if (y > 270) { doc.addPage(); y = 20; } doc.setFontSize(8); doc.text(row[0] + ' - ' + row[2], 14, y); y += 6; });
+                    tableBody.forEach((row, i) => {
+                        if (y > 270) { doc.addPage(); y = 20; }
+                        doc.setFontSize(8);
+                        doc.text(`${row[0]} - ${row[2]}`, 14, y);
+                        y += 6;
+                    });
                 }
-                doc.save('DailySafetyCheckList_' + (record.date || '').toString().slice(0, 10) + '_' + (record.id || '').replace(/[^a-zA-Z0-9-]/g, '') + '.pdf');
+                const fileName = `DailySafetyCheckList_${(record.date || '').toString().slice(0, 10)}_${(record.id || '').replace(/[^a-zA-Z0-9-]/g, '')}.pdf`;
+                doc.save(fileName);
                 Notification.success('تم تصدير السجل إلى PDF بنجاح');
                 return;
-            } catch (e) { Utils.safeWarn && Utils.safeWarn('تصدير PDF بـ jsPDF فشل، استخدام نافذة الطباعة:', e); }
+            } catch (e) {
+                Utils.safeWarn('تصدير PDF بـ jsPDF فشل، استخدام نافذة الطباعة:', e);
+            }
         }
         const content = this.getDailySafetyCheckListRecordPrintContent(record);
         const formTitle = 'سجل Daily Safety Check List - قائمة الفحص اليومي للسلامة';
         const htmlContent = typeof FormHeader !== 'undefined' && FormHeader.generatePDFHTML
-            ? FormHeader.generatePDFHTML('DSC-' + (record.id || ''), formTitle, content, false, true, { source: 'DailySafetyCheckList', titleEn: 'Daily Safety Check List', titleAr: 'قائمة الفحص اليومي للسلامة' }, record.createdAt || new Date().toISOString(), record.updatedAt || record.createdAt || new Date().toISOString())
+            ? FormHeader.generatePDFHTML(`DSC-${record.id || ''}`, formTitle, content, false, true, { source: 'DailySafetyCheckList', titleEn: 'Daily Safety Check List', titleAr: 'قائمة الفحص اليومي للسلامة' }, record.createdAt || new Date().toISOString(), record.updatedAt || record.createdAt || new Date().toISOString())
             : `<!DOCTYPE html><html dir="rtl" lang="ar"><head><meta charset="UTF-8"><title>${formTitle}</title></head><body style="font-family:Arial,Tahoma,sans-serif;direction:rtl;padding:20px;">${content}</body></html>`;
         const url = URL.createObjectURL(new Blob(['\ufeff' + htmlContent], { type: 'text/html;charset=utf-8' }));
         const w = window.open(url, '_blank');
-        if (w) { w.onload = () => { setTimeout(() => { w.print(); URL.revokeObjectURL(url); }, 300); }; Notification.info('استخدم "حفظ كـ PDF" في نافذة الطباعة لإنشاء ملف PDF'); } else { Notification.error('يرجى السماح للنوافذ المنبثقة لفتح التقرير'); }
+        if (w) {
+            w.onload = () => { setTimeout(() => { w.print(); URL.revokeObjectURL(url); }, 300); };
+            Notification.info('استخدم "حفظ كـ PDF" في نافذة الطباعة لإنشاء ملف PDF');
+        } else {
+            Notification.error('يرجى السماح للنوافذ المنبثقة لفتح التقرير');
+        }
     },
 
+    /**
+     * التحقق من استكمال جميع بيانات نموذج Daily Safety Check List قبل الحفظ
+     * @param {HTMLElement} modalElement - عنصر النموذج
+     * @returns {{ valid: boolean, message?: string }}
+     */
     validateDailySafetyCheckListForm(modalElement) {
         const siteId = (modalElement.querySelector('#dsc-siteId') || {}).value || '';
         const date = (modalElement.querySelector('#dsc-date') || {}).value || '';
@@ -3387,6 +3483,7 @@ const PeriodicInspections = {
             const el = modalElement.querySelector('#dsc-' + q.key);
             const val = el ? (el.value || '').trim() : '';
             if (!val) {
+                const recordKey = fieldToRecordKey[q.key] || q.key;
                 const label = q.key === 'q16' ? 'قراءة الضغط (السؤال 16)' : `السؤال ${this.DAILY_SAFETY_CHECKLIST_QUESTIONS.indexOf(q) + 1}`;
                 return { valid: false, message: `يرجى الإجابة على جميع بنود الفحص. الحقل الناقص: ${label}.` };
             }
@@ -3421,6 +3518,7 @@ const PeriodicInspections = {
             list.push({ id, ...payload, createdAt: now, updatedAt: now });
         }
         if (typeof DataManager !== 'undefined' && DataManager.save) DataManager.save();
+        // إغلاق النموذج فوراً ثم تحديث الجدول والمزامنة في الخلفية
         modalElement.remove();
         if (this.state.currentTab === 'daily-safety-checklist') {
             const contentContainer = document.getElementById('periodic-inspections-content-area');
@@ -3430,6 +3528,7 @@ const PeriodicInspections = {
         }
         if (editId) Notification.success('تم تحديث السجل بنجاح');
         else Notification.success('تم إضافة السجل بنجاح');
+        // المزامنة مع الخلفية في الخلفية (بدون انتظار)
         if (typeof GoogleIntegration !== 'undefined' && GoogleIntegration.autoSave) {
             GoogleIntegration.autoSave('DailySafetyCheckList', list).catch(() => {});
         }

@@ -16,7 +16,8 @@ const Employees = {
     config: {
         cacheTimeout: 5 * 60 * 1000, // 5 دقائق - صلاحية الـ cache
         backgroundUpdateInterval: 10 * 60 * 1000, // 10 دقائق - فترة التحديث في الخلفية
-        backgroundUpdateTimer: null
+        backgroundUpdateTimer: null,
+        _refreshedOnceForInactive: false // مرة واحدة لكل جلسة لجلب المستقيلين من الخادم
     },
 
     /**
@@ -969,6 +970,16 @@ const Employees = {
             if (this.cache.data && this.cache.data.length > 0) {
                 AppState.appData.employees = this.cache.data;
             }
+            // ✅ مرة واحدة لكل جلسة: إذا عداد المستقيلين 0 والكاش قد يكون قديماً، جلب كامل من الخادم في الخلفية
+            if (!this.config._refreshedOnceForInactive && AppState.appData.employees.length > 0 && AppState.googleConfig?.appsScript?.enabled) {
+                const inactiveInCache = (AppState.appData.employees || []).filter(e => this.isEmployeeInactive(e)).length;
+                if (inactiveInCache === 0) {
+                    this.config._refreshedOnceForInactive = true;
+                    this.loadEmployeesFromBackend(true).then(() => {
+                        window.dispatchEvent(new CustomEvent('employeesDataUpdated', { detail: {} }));
+                    }).catch(() => {});
+                }
+            }
             return true;
         }
 
@@ -1269,14 +1280,10 @@ const Employees = {
             Utils.safeLog(`📊 loadEmployeesList: إجمالي الموظفين = ${employees.length}, showInactive = ${showInactive}`);
         }
 
-        // ✅ تصفية الموظفين النشطين فقط (ما لم يُطلب خلاف ذلك)
+        // ✅ تصفية الموظفين النشطين فقط (ما لم يُطلب خلاف ذلك) - استخدام isEmployeeInactive
         if (!showInactive) {
             const beforeFilter = employees.length;
-            employees = employees.filter(e => 
-                e.status === undefined || 
-                e.status === '' || 
-                e.status === 'active'
-            );
+            employees = employees.filter(e => !this.isEmployeeInactive(e));
             if (AppState.debugMode) {
                 Utils.safeLog(`📊 بعد التصفية (نشطين فقط): ${employees.length} من ${beforeFilter}`);
             }
@@ -1358,8 +1365,8 @@ const Employees = {
             const hireDate = this.formatDateSafe(employee.hireDate);
             const age = this.calculateAge(employee.birthDate);
             
-            // ✅ تحديد إذا كان الموظف غير نشط
-            const isInactive = employee.status === 'inactive';
+            // ✅ تحديد إذا كان الموظف غير نشط (مستقيل)
+            const isInactive = this.isEmployeeInactive(employee);
             const rowStyle = isInactive ? 'opacity: 0.7; background-color: #f8f9fa;' : '';
             
             const tr = document.createElement('tr');
@@ -3188,13 +3195,9 @@ const Employees = {
         
         let employees = AppState.appData.employees || [];
         
-        // ✅ تصفية الموظفين النشطين فقط (ما لم يُطلب خلاف ذلك)
+        // ✅ تصفية الموظفين النشطين فقط (ما لم يُطلب خلاف ذلك) - استخدام isEmployeeInactive
         if (!showInactive) {
-            employees = employees.filter(e => 
-                e.status === undefined || 
-                e.status === '' || 
-                e.status === 'active'
-            );
+            employees = employees.filter(e => !this.isEmployeeInactive(e));
         }
         
         let filtered = employees;
@@ -3257,8 +3260,8 @@ const Employees = {
                 const hireDate = this.formatDateSafe(employee.hireDate);
                 const age = this.calculateAge(employee.birthDate);
                 
-                // ✅ تحديد إذا كان الموظف غير نشط
-                const isInactive = employee.status === 'inactive';
+                // ✅ تحديد إذا كان الموظف غير نشط (مستقيل)
+                const isInactive = this.isEmployeeInactive(employee);
                 const rowStyle = isInactive ? 'opacity: 0.7; background-color: #f8f9fa;' : '';
                 
                 const tr = document.createElement('tr');
@@ -3586,7 +3589,7 @@ const Employees = {
         const doUpdate = () => {
             try {
                 const employees = AppState.appData.employees || [];
-                const inactiveCount = employees.filter(e => e.status === 'inactive').length;
+                const inactiveCount = employees.filter(e => this.isEmployeeInactive(e)).length;
                 
                 const countBadge = document.getElementById('inactive-employees-count');
                 if (countBadge) {
