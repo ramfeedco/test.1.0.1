@@ -2597,7 +2597,8 @@ window.UI = {
     },
 
     /**
-     * التحقق من إصدار التطبيق على الخادم (Vercel) — إن وُجد إصدار أحدث، عرض إشعار التحديث.
+     * التحقق من إصدار التطبيق على الخادم (Vercel) — إن وُجد إصدار أحدث مما شاهده المستخدم سابقاً، عرض إشعار التحديث.
+     * يعتمد على version.json + hse_last_seen_version في localStorage بدلاً من AppState.appVersion لإزالة الاعتماد على قيمة ثابتة في الكود.
      * يُستدعى بعد الدخول، بشكل دوري، وعند العودة إلى التبويب.
      */
     async _checkServerVersion() {
@@ -2611,10 +2612,22 @@ window.UI = {
             const data = await res.json();
             const serverVersion = (data && data.version) ? String(data.version).trim() : '';
             if (!serverVersion) return;
-            const currentVersion = (typeof AppState !== 'undefined' && AppState.appVersion) ? String(AppState.appVersion).trim() : '';
-            if (!currentVersion) return;
+
+            const storageKey = 'hse_last_seen_version';
+            const lastSeen = (typeof localStorage !== 'undefined' && localStorage.getItem(storageKey))
+                ? String(localStorage.getItem(storageKey)).trim()
+                : '';
+
+            // إذا لم يكن هناك إصدار محفوظ للمستخدم من قبل، خزّن الإصدار الحالي وانهِ بدون إظهار نافذة
+            if (!lastSeen) {
+                try { if (typeof localStorage !== 'undefined') localStorage.setItem(storageKey, serverVersion); } catch (e) {}
+                return;
+            }
+
             if (typeof this._compareVersions !== 'function') return;
-            if (this._compareVersions(serverVersion, currentVersion) <= 0) return;
+            // عرض نافذة التحديث فقط إذا كان إصدار الخادم أحدث تسلسلياً من آخر إصدار شاهده المستخدم
+            if (this._compareVersions(serverVersion, lastSeen) <= 0) return;
+
             this._showUpdateModal(serverVersion);
         } catch (e) {
             if (AppState.debugMode && typeof Utils !== 'undefined' && Utils.safeWarn) Utils.safeWarn('⚠️ التحقق من إصدار الخادم:', e);
@@ -2663,9 +2676,11 @@ window.UI = {
         this.initUserConnectionStatus();
 
         // تحميل البيانات تلقائياً من قاعدة البيانات مباشرة بعد تسجيل الدخول حسب صلاحيات المستخدم
+        // ⚠️ لا يتم تشغيل هذا المنطق عند مجرد إعادة تحميل الصفحة (isPageRefresh)
         try {
             if (typeof AppState !== 'undefined' &&
                 AppState.currentUser &&
+                !AppState.isPageRefresh &&
                 !AppState._autoSyncStarted &&
                 typeof GoogleIntegration !== 'undefined' &&
                 typeof GoogleIntegration.syncData === 'function' &&
