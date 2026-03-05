@@ -3065,11 +3065,12 @@ const Training = {
                                         ` : '<span class="text-xs text-gray-500">لا توجد موضوعات محددة</span>'}
                                     </td>
                                     <td>
-                                        <div class="flex items-center gap-2">
-                                            <button onclick="Training.viewEmployeeTrainingMatrix('${code}')" class="btn-icon btn-icon-info" title="عرض تفاصيل التدريب">
+                                        <div class="flex items-center gap-2 flex-wrap">
+                                            <button onclick="Training.viewEmployeeTrainingMatrix('${Utils.escapeHTML(code)}')" class="btn-secondary btn-sm" title="عرض التفاصيل وجميع تدريبات الموظف" style="display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; font-size: 0.875rem;">
                                                 <i class="fas fa-eye"></i>
+                                                <span>عرض التفاصيل</span>
                                             </button>
-                                            <button onclick="Training.openQuickTrainingRegistration('${code}')" class="btn-icon btn-icon-primary" title="تسجيل تدريب جديد">
+                                            <button onclick="Training.openQuickTrainingRegistration('${Utils.escapeHTML(code)}')" class="btn-icon btn-icon-primary" title="تسجيل تدريب جديد">
                                                 <i class="fas fa-plus"></i>
                                             </button>
                                         </div>
@@ -3171,18 +3172,23 @@ const Training = {
 
         const modal = document.createElement('div');
         modal.className = 'modal-overlay';
+        const sortedTrainings = [...trainings].sort((a, b) => {
+            const dateA = new Date(a.trainingDate || a.date || 0);
+            const dateB = new Date(b.trainingDate || b.date || 0);
+            return dateB - dateA;
+        });
         modal.innerHTML = `
-            <div class="modal-content" style="max-width: 1000px;">
+            <div class="modal-content" style="max-width: 1100px; max-height: 90vh; display: flex; flex-direction: column;">
                 <div class="modal-header">
                     <h2 class="modal-title">
                         <i class="fas fa-graduation-cap ml-2"></i>
-                        مصفوفة التدريب للموظف: ${Utils.escapeHTML(emp.name || '')}
+                        تفاصيل التدريب: ${Utils.escapeHTML(emp.name || '')}
                     </h2>
                     <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">
                         <i class="fas fa-times"></i>
                     </button>
                 </div>
-                <div class="modal-body">
+                <div class="modal-body" style="overflow-y: auto; flex: 1;">
                     <div class="mb-4">
                         <div class="grid grid-cols-2 gap-4">
                             <div>
@@ -3227,10 +3233,15 @@ const Training = {
                             </div>
                         </div>
                     ` : ''}
-                    ${trainings.length > 0 ? `
-                        <div class="table-wrapper" style="overflow-x: auto;">
-                            <table class="data-table">
-                                <thead>
+                    <div class="mt-6">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-3">
+                            <i class="fas fa-list-alt ml-2 text-green-600"></i>
+                            جميع تدريبات الموظف (${trainings.length})
+                        </h3>
+                        ${trainings.length > 0 ? `
+                        <div class="table-wrapper" style="overflow: auto; max-height: 400px; border: 1px solid #e5e7eb; border-radius: 8px;">
+                            <table class="data-table" style="margin: 0;">
+                                <thead style="position: sticky; top: 0; background: #f8fafc; z-index: 1;">
                                     <tr>
                                         <th>اسم البرنامج</th>
                                         <th>نوع التدريب</th>
@@ -3242,19 +3253,15 @@ const Training = {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    ${trainings.sort((a, b) => {
-            const dateA = new Date(a.trainingDate || a.trainingDate || 0);
-            const dateB = new Date(b.trainingDate || b.trainingDate || 0);
-            return dateB - dateA;
-        }).map(t => `
+                                    ${sortedTrainings.map(t => `
                                         <tr>
-                                            <td>${Utils.escapeHTML(t.trainingName || '')}</td>
+                                            <td>${Utils.escapeHTML(t.trainingName || t.name || '')}</td>
                                             <td>
                                                 <span class="badge badge-${t.trainingType === 'داخلي' ? 'info' : 'warning'}">
                                                     ${Utils.escapeHTML(t.trainingType || 'داخلي')}
                                                 </span>
                                             </td>
-                                            <td>${t.trainingDate ? Utils.formatDate(t.trainingDate) : '-'}</td>
+                                            <td>${(t.trainingDate || t.date) ? Utils.formatDate(t.trainingDate || t.date) : '-'}</td>
                                             <td>${Utils.escapeHTML(t.location || '-')}</td>
                                             <td>${Utils.escapeHTML(t.trainer || '-')}</td>
                                             <td>${(parseFloat(t.hours) || 0).toFixed(2)} ساعة</td>
@@ -3268,12 +3275,13 @@ const Training = {
                                 </tbody>
                             </table>
                         </div>
-                    ` : `
-                        <div class="empty-state">
+                        ` : `
+                        <div class="empty-state" style="padding: 2rem;">
                             <i class="fas fa-graduation-cap text-4xl text-gray-300 mb-4"></i>
-                            <p class="text-gray-500">لا توجد برامج تدريب مسجلة لهذا الموظ</p>
+                            <p class="text-gray-500">لا توجد برامج تدريب مسجلة لهذا الموظف</p>
                         </div>
-                    `}
+                        `}
+                    </div>
                 </div>
                 <div class="modal-footer">
                     <button class="btn-secondary" onclick="this.closest('.modal-overlay').remove()">إغلاق</button>
