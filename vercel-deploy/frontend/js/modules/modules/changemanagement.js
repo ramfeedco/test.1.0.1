@@ -149,13 +149,13 @@ const ChangeManagement = {
     /** تبويب طلبات الموافقة */
     renderApprovalsListHTML() {
         return `
-            <div class="content-card">
-                <div class="card-header border-b border-gray-200 px-4 py-3 flex items-center justify-between flex-wrap gap-2" style="background: var(--bg-secondary);">
-                    <h3 class="card-title text-lg font-semibold" style="margin: 0;">طلبات الموافقة</h3>
-                    <p class="text-sm text-gray-500 m-0">الطلبات التي تتطلب اعتمادك حسب دائرة الاعتماد الإلكترونية</p>
+            <div class="content-card" style="overflow:hidden;">
+                <div class="card-header border-b px-4 py-3" style="background:linear-gradient(135deg,rgba(59,130,246,0.12),rgba(14,165,233,0.08));text-align:center;">
+                    <h3 class="card-title text-lg font-semibold" style="margin:0;">طلبات الموافقة</h3>
+                    <p class="text-sm text-gray-500 m-0 mt-1">الطلبات التي تتطلب اعتمادك حسب دائرة الاعتماد الإلكترونية</p>
                 </div>
-                <div class="card-body">
-                    <div id="change-approvals-list-container">
+                <div class="card-body" style="padding:0;">
+                    <div id="change-approvals-list-container" style="max-height:480px;overflow-y:auto;overflow-x:auto;padding:1rem;">
                         <div class="empty-state py-8"><p class="text-gray-500">لا توجد طلبات موافقة حالياً</p></div>
                     </div>
                 </div>
@@ -180,6 +180,15 @@ const ChangeManagement = {
                 <p class="text-gray-500">جاري تحميل الطلبات...</p>
             </div>
         `;
+        const apprContainer = document.getElementById('change-approvals-list-container');
+        if (apprContainer && this.state.activeTab === 'approvals') {
+            apprContainer.innerHTML = `
+                <div class="empty-state py-8">
+                    <i class="fas fa-spinner fa-spin text-3xl text-blue-500 mb-3"></i>
+                    <p class="text-gray-500">جاري تحميل طلبات الموافقة...</p>
+                </div>
+            `;
+        }
 
         try {
             const response = await GoogleIntegration.sendRequest({
@@ -193,6 +202,13 @@ const ChangeManagement = {
                 this.renderRequestsList(data);
                 if (this.state.activeTab === 'register') {
                     this.renderRegisterTable(data);
+                }
+                if (this.state.activeTab === 'approvals') {
+                    this.renderApprovalsList(data);
+                }
+                const pendingCount = (data || []).filter(r => this.isApprovalPendingForCurrentUser(r)).length;
+                if (pendingCount > 0 && typeof Notification !== 'undefined' && Notification.info) {
+                    Notification.info('لديك ' + pendingCount + ' طلب موافقة في انتظارك');
                 }
             } else {
                 if (typeof Utils !== 'undefined' && Utils.safeError) Utils.safeError('خطأ في تحميل الطلبات:', response.message);
@@ -311,23 +327,23 @@ const ChangeManagement = {
             <div class="overflow-x-auto">
                 <table class="w-full border-collapse text-sm" style="border-color: var(--border-color);">
                     <thead>
-                        <tr style="background: var(--bg-secondary); border-bottom: 1px solid var(--border-color);">
-                            <th class="p-3 text-right font-semibold" style="color: var(--text-primary);">رقم الطلب</th>
-                            <th class="p-3 text-right font-semibold" style="color: var(--text-primary);">الموضوع</th>
-                            <th class="p-3 text-right font-semibold" style="color: var(--text-primary);">الإدارة الطالبة</th>
-                            <th class="p-3 text-right font-semibold" style="color: var(--text-primary);">الإدارة المعنية</th>
-                            <th class="p-3 text-right font-semibold" style="color: var(--text-primary);">خطوة الاعتماد</th>
-                            <th class="p-3 text-right font-semibold" style="color: var(--text-primary);">الحالة</th>
-                            <th class="p-3 text-right font-semibold" style="color: var(--text-primary);">التاريخ</th>
-                            <th class="p-3 text-right font-semibold" style="color: var(--text-primary);">إجراءات</th>
+                        <tr>
+                            <th class="p-3 text-right font-semibold" style="position:sticky;top:0;z-index:1;background:linear-gradient(135deg,#3b82f6,#0ea5e9);color:#fff;border-bottom:1px solid #0284c7;">رقم الطلب</th>
+                            <th class="p-3 text-right font-semibold" style="position:sticky;top:0;z-index:1;background:linear-gradient(135deg,#3b82f6,#0ea5e9);color:#fff;border-bottom:1px solid #0284c7;">الموضوع</th>
+                            <th class="p-3 text-right font-semibold" style="position:sticky;top:0;z-index:1;background:linear-gradient(135deg,#3b82f6,#0ea5e9);color:#fff;border-bottom:1px solid #0284c7;">الإدارة الطالبة</th>
+                            <th class="p-3 text-right font-semibold" style="position:sticky;top:0;z-index:1;background:linear-gradient(135deg,#3b82f6,#0ea5e9);color:#fff;border-bottom:1px solid #0284c7;">الإدارة المعنية</th>
+                            <th class="p-3 text-right font-semibold" style="position:sticky;top:0;z-index:1;background:linear-gradient(135deg,#3b82f6,#0ea5e9);color:#fff;border-bottom:1px solid #0284c7;">خطوة الاعتماد</th>
+                            <th class="p-3 text-right font-semibold" style="position:sticky;top:0;z-index:1;background:linear-gradient(135deg,#3b82f6,#0ea5e9);color:#fff;border-bottom:1px solid #0284c7;">الحالة</th>
+                            <th class="p-3 text-right font-semibold" style="position:sticky;top:0;z-index:1;background:linear-gradient(135deg,#3b82f6,#0ea5e9);color:#fff;border-bottom:1px solid #0284c7;">التاريخ</th>
+                            <th class="p-3 text-right font-semibold" style="position:sticky;top:0;z-index:1;background:linear-gradient(135deg,#3b82f6,#0ea5e9);color:#fff;border-bottom:1px solid #0284c7;">إجراءات</th>
                         </tr>
                     </thead>
                     <tbody>
-                        ${pendingForUser.map(r => {
+                        ${pendingForUser.map((r, i) => {
                             const displayNumber = this.getDisplayRequestNumber(r) || (r.requestNumber || r.id || '');
                             const stepInfo = this.getCurrentApprovalStepLabel(r);
                             return `
-                                <tr class="border-b hover:opacity-90" style="border-color: var(--border-color); background: var(--card-bg);">
+                                <tr class="border-b hover:opacity-90" style="border-color: var(--border-color); background: ${i % 2 === 0 ? 'var(--card-bg)' : 'rgba(241,245,249,0.8)'};">
                                     <td class="p-3">${safe(displayNumber)}</td>
                                     <td class="p-3">${safe(r.title || '—')}</td>
                                     <td class="p-3">${safe(r.fromDepartment || r.requestingDepartment || '—')}</td>
