@@ -572,26 +572,24 @@ const Users = {
         Utils.safeLog('🔧 عرض نموذج إضافة/تعديل مستخدم:', userData ? 'تعديل' : 'إضافة جديد');
         this.currentEditId = userData?.id || null;
         
-        // تحميل الصلاحيات التفصيلية الحالية
-        // ✅ إصلاح: تهيئة الصلاحيات التفصيلية بشكل صحيح
+        // تحميل الصلاحيات التفصيلية الحالية + تطبيع صلاحيات المديولات الأساسية للنموذج
         this.currentDetailedPermissions = {};
+        let normalizedBasePermissions = null;
+
         if (userData && userData.permissions) {
             let perms;
             try {
-                // ✅ إصلاح: استخدام Permissions.normalizePermissions إذا كان متاحاً
+                // استخدام Permissions.normalizePermissions إذا كان متاحاً
                 if (typeof Permissions !== 'undefined' && typeof Permissions.normalizePermissions === 'function') {
                     perms = Permissions.normalizePermissions(userData.permissions);
                 } else if (typeof userData.permissions === 'string') {
                     // محاولة تحليل JSON
                     const trimmed = userData.permissions.trim();
-                    // التحقق من أن النص يبدأ بـ { أو [ (JSON صالح)
                     if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
                         perms = JSON.parse(trimmed);
                     } else {
-                        // إذا لم يكن JSON، قد يكون نص عادي - نحاول تحويله
-                        // مثال: "employees: true\nincidents: true" -> {employees: true, incidents: true}
+                        // إذا لم يكن JSON، قد يكون نص عادي - نحاول تحويله إلى كائن
                         try {
-                            // محاولة تحويل النص إلى كائن
                             const lines = trimmed.split('\n').filter(line => line.trim());
                             perms = {};
                             lines.forEach(line => {
@@ -599,7 +597,6 @@ const Users = {
                                 if (match) {
                                     const key = match[1].trim();
                                     const value = match[2].trim();
-                                    // تحويل القيم النصية إلى boolean/string
                                     if (value === 'true') {
                                         perms[key] = true;
                                     } else if (value === 'false') {
@@ -612,7 +609,6 @@ const Users = {
                                 }
                             });
                         } catch (parseError) {
-                            // إذا فشل التحويل، نستخدم كائن فارغ
                             perms = {};
                         }
                     }
@@ -620,29 +616,45 @@ const Users = {
                     perms = userData.permissions;
                 }
             } catch (error) {
-                // استخدام safeError بدلاً من console.error لتجنب إظهار الأخطاء غير الحرجة
                 if (typeof Utils !== 'undefined' && Utils.safeWarn) {
                     Utils.safeWarn('⚠️ خطأ في تحليل صلاحيات المستخدم - سيتم استخدام الصلاحيات الافتراضية');
                 }
                 perms = {};
             }
             
-            // ✅ إصلاح: التأكد من أن perms هو كائن صالح
             if (!perms || typeof perms !== 'object' || Array.isArray(perms)) {
                 perms = {};
             }
             
-            // استخراج الصلاحيات التفصيلية
+            const basePermissions = {};
             Object.keys(perms).forEach(key => {
-                if (key.endsWith('Permissions') && typeof perms[key] === 'object' && !Array.isArray(perms[key])) {
-                    this.currentDetailedPermissions[key] = perms[key];
+                const value = perms[key];
+                if (key.endsWith('Permissions') && typeof value === 'object' && !Array.isArray(value)) {
+                    // صلاحيات تفصيلية تُخزَّن في this.currentDetailedPermissions
+                    this.currentDetailedPermissions[key] = value;
+                } else if (!key.endsWith('Permissions')) {
+                    // صلاحيات المديولات الأساسية (module -> true/false) تُستخدم لتهيئة Checkboxes
+                    basePermissions[key] = value === true;
                 }
             });
-        }
 
+            normalizedBasePermissions = basePermissions;
+        }
+        
         const content = document.getElementById('users-content');
         if (content) {
-            content.innerHTML = await this.renderForm(userData);
+            const normalizedUserData = userData
+                ? {
+                    ...userData,
+                    // إذا كانت الصلاحيات محفوظة كنص JSON في AppState، نقوم بتمرير نسخة ككائن للنموذج
+                    permissions: normalizedBasePermissions
+                        ?? (userData.permissions && typeof userData.permissions === 'object' && !Array.isArray(userData.permissions)
+                            ? userData.permissions
+                            : {})
+                }
+                : null;
+
+            content.innerHTML = await this.renderForm(normalizedUserData);
             this.setupEventListeners();
 
             // تحديث حالة الصلاحيات عند تغيير الدور
