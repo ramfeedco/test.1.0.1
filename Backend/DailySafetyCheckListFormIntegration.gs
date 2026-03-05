@@ -22,8 +22,10 @@ var LAST_PROCESSED_ROW_KEY = 'LAST_PROCESSED_ROW_DAILY_SAFETY_FORM';
 
 var COL_A = 0;
 var COL_B = 1;
+var COL_X = 23; // عمود X لملاحظات مصنع 1
 var COL_F = 5;
 var COL_Y = 24;
+var COL_AQ = 42; // عمود AQ لملاحظات مصنع 2
 var QUESTION_COUNT = 18;
 
 /**
@@ -219,16 +221,25 @@ function mapFormRowToDailySafetyCheckList(rowData, headers) {
     }
   }
 
-  var notesStart = useFactory2 ? COL_Y : 0;
-  var notesEnd = useFactory2 ? Math.min(COL_Y + QUESTION_COUNT + 5, headers.length) : headers.length;
   var notesValue = '';
-  for (var c = notesStart; c < notesEnd && c < headers.length; c++) {
-    var h = (headers[c] || '').toString().trim();
-    if (h === 'الملاحظات الموجودة أثناء المرور' || h.indexOf('ملاحظات') >= 0 || h.toLowerCase() === 'notes') {
-      if (rowData[c] !== undefined && rowData[c] !== null && String(rowData[c]).trim() !== '') {
-        notesValue = String(rowData[c]).trim();
+  var notesColIndex = useFactory2 ? COL_AQ : COL_X;
+
+  if (rowData.length > notesColIndex &&
+      rowData[notesColIndex] !== undefined &&
+      rowData[notesColIndex] !== null &&
+      String(rowData[notesColIndex]).trim() !== '') {
+    notesValue = String(rowData[notesColIndex]).trim();
+  } else {
+    var notesStart = useFactory2 ? COL_Y : 0;
+    var notesEnd = useFactory2 ? Math.min(COL_Y + QUESTION_COUNT + 5, headers.length) : headers.length;
+    for (var c = notesStart; c < notesEnd && c < headers.length; c++) {
+      var h = (headers[c] || '').toString().trim();
+      if (h === 'الملاحظات الموجودة أثناء المرور' || h.indexOf('ملاحظات') >= 0 || h.toLowerCase() === 'notes') {
+        if (rowData[c] !== undefined && rowData[c] !== null && String(rowData[c]).trim() !== '') {
+          notesValue = String(rowData[c]).trim();
+        }
+        break;
       }
-      break;
     }
   }
   out.notes = notesValue;

@@ -854,10 +854,12 @@ const PPE = {
         };
         const formatInfo = (value) => value ? Utils.escapeHTML(value) : '—';
         modal.innerHTML = `
-            <div class="modal-content" style="max-width: 700px;">
-                <div class="modal-header">
-                    <h2 class="modal-title">${isEdit ? 'تعديل استلام' : 'تسجيل استلام جديد'}</h2>
-                    <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">
+            <div class="modal-content" style="max-width: 720px; border-radius: 1rem; overflow: hidden;">
+                <div class="modal-header" style="background: linear-gradient(135deg, #1d4ed8, #0f766e); color: #ffffff; text-align: center; position: relative; padding: 1rem 1.5rem;">
+                    <h2 class="modal-title" style="margin: 0 auto; font-weight: 700; letter-spacing: 0.03em;">
+                        ${isEdit ? 'تعديل استلام' : 'تسجيل استلام جديد'}
+                    </h2>
+                    <button class="modal-close" onclick="this.closest('.modal-overlay').remove()" style="position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); color: #ffffff;">
                         <i class="fas fa-times"></i>
                     </button>
                 </div>
@@ -921,32 +923,61 @@ const PPE = {
                             </div>
                         </div>
 
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="space-y-4">
                             <div>
-                                <label class="block text-sm font-semibold text-gray-700 mb-2">نوع المعدة *</label>
-                                <select id="ppe-equipment-type" required class="form-input">
-                                    <option value="">جاري التحميل...</option>
-                                </select>
+                                <div class="flex items-center justify-between mb-2">
+                                    <h3 class="text-sm font-semibold text-gray-800">الأصناف المستلمة *</h3>
+                                    <button type="button" id="ppe-add-item-btn" class="btn-secondary text-xs px-3 py-1">
+                                        <i class="fas fa-plus ml-1"></i>إضافة صنف آخر
+                                    </button>
+                                </div>
+                                <div id="ppe-items-container" class="space-y-3">
+                                    <div class="ppe-item-row grid grid-cols-1 md:grid-cols-3 gap-3 items-end">
+                                        <div class="md:col-span-2">
+                                            <label class="block text-xs font-semibold text-gray-700 mb-1">نوع المعدة *</label>
+                                            <select id="ppe-equipment-type" required class="form-input ppe-equipment-type">
+                                                <option value="">جاري التحميل...</option>
+                                            </select>
+                                            <p class="text-[11px] text-gray-500 mt-1">
+                                                يتم تحميل قائمة مهمات الوقاية من المخزون
+                                            </p>
+                                        </div>
+                                        <div>
+                                            <label class="block text-xs font-semibold text-gray-700 mb-1">الكمية *</label>
+                                            <div class="flex items-center gap-2">
+                                                <input type="number" id="ppe-quantity" required class="form-input ppe-quantity" min="1"
+                                                    value="${ppeData?.quantity || 1}" placeholder="الكمية">
+                                                <button type="button" class="btn-secondary ppe-remove-item hidden text-xs px-3 py-2">
+                                                    <i class="fas fa-trash-alt ml-1"></i>حذف
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                                 <p class="text-xs text-gray-500 mt-1">
-                                    يتم تحميل قائمة مهمات الوقاية من المخزون
+                                    يمكنك إضافة أكثر من صنف لنفس الموظف عن طريق تكرار السطر.
                                 </p>
                             </div>
-                            <div>
-                                <label class="block text-sm font-semibold text-gray-700 mb-2">الكمية *</label>
-                                <input type="number" id="ppe-quantity" required class="form-input" min="1"
-                                    value="${ppeData?.quantity || 1}" placeholder="الكمية">
+
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-sm font-semibold text-gray-700 mb-2">تاريخ الاستلام *</label>
+                                    <input type="date" id="ppe-receipt-date" required class="form-input"
+                                        value="${ppeData?.receiptDate ? new Date(ppeData.receiptDate).toISOString().slice(0, 10) : ''}">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-semibold text-gray-700 mb-2">الحالة *</label>
+                                    <select id="ppe-status" required class="form-input">
+                                        <option value="مستلم" ${ppeData?.status === 'مستلم' ? 'selected' : ''}>مستلم</option>
+                                        <option value="قيد التسليم" ${ppeData?.status === 'قيد التسليم' ? 'selected' : ''}>قيد التسليم</option>
+                                    </select>
+                                </div>
                             </div>
+
                             <div>
-                                <label class="block text-sm font-semibold text-gray-700 mb-2">تاريخ الاستلام *</label>
-                                <input type="date" id="ppe-receipt-date" required class="form-input"
-                                    value="${ppeData?.receiptDate ? new Date(ppeData.receiptDate).toISOString().slice(0, 10) : ''}">
-                            </div>
-                            <div>
-                                <label class="block text-sm font-semibold text-gray-700 mb-2">الحالة *</label>
-                                <select id="ppe-status" required class="form-input">
-                                    <option value="مستلم" ${ppeData?.status === 'مستلم' ? 'selected' : ''}>مستلم</option>
-                                    <option value="قيد التسليم" ${ppeData?.status === 'قيد التسليم' ? 'selected' : ''}>قيد التسليم</option>
-                                </select>
+                                <label class="block text-sm font-semibold text-gray-700 mb-2">ملاحظات</label>
+                                <textarea id="ppe-notes" class="form-input" rows="3"
+                                    placeholder="اكتب أي ملاحظات إضافية حول الاستلام">${Utils.escapeHTML(ppeData?.notes || '')}</textarea>
                             </div>
                         </div>
                         <div class="flex items-center justify-end gap-4 pt-4 border-t">
@@ -1151,6 +1182,88 @@ const PPE = {
                 location: employeeInfo.location || locationInput?.value || ''
             });
 
+            // إعداد إدارة صفوف الأصناف (إمكانية إضافة أكثر من صنف لنفس الموظف)
+            const itemsContainer = document.getElementById('ppe-items-container');
+            const addItemBtn = document.getElementById('ppe-add-item-btn');
+
+            const refreshRemoveButtonsVisibility = () => {
+                if (!itemsContainer) return;
+                const rows = Array.from(itemsContainer.querySelectorAll('.ppe-item-row'));
+                rows.forEach(row => {
+                    const removeBtn = row.querySelector('.ppe-remove-item');
+                    if (!removeBtn) return;
+                    const shouldHide = rows.length === 1 || isEdit;
+                    if (shouldHide) {
+                        removeBtn.classList.add('hidden');
+                    } else {
+                        removeBtn.classList.remove('hidden');
+                    }
+                });
+            };
+
+            const attachRemoveHandler = (row) => {
+                if (!itemsContainer || !row) return;
+                const removeBtn = row.querySelector('.ppe-remove-item');
+                if (!removeBtn) return;
+
+                removeBtn.addEventListener('click', () => {
+                    const rows = Array.from(itemsContainer.querySelectorAll('.ppe-item-row'));
+                    if (rows.length <= 1) return;
+                    row.remove();
+                    refreshRemoveButtonsVisibility();
+                });
+            };
+
+            const createItemRow = () => {
+                if (!itemsContainer) return null;
+                const baseRow = itemsContainer.querySelector('.ppe-item-row');
+                if (!baseRow) return null;
+
+                const newRow = baseRow.cloneNode(true);
+
+                const selectEl = newRow.querySelector('.ppe-equipment-type');
+                if (selectEl) {
+                    selectEl.value = '';
+                    if (selectEl.id === 'ppe-equipment-type') {
+                        selectEl.removeAttribute('id');
+                    }
+                }
+
+                const quantityEl = newRow.querySelector('.ppe-quantity');
+                if (quantityEl) {
+                    quantityEl.value = '1';
+                    if (quantityEl.id === 'ppe-quantity') {
+                        quantityEl.removeAttribute('id');
+                    }
+                }
+
+                itemsContainer.appendChild(newRow);
+                attachRemoveHandler(newRow);
+                refreshRemoveButtonsVisibility();
+
+                // التأكد من تحميل قائمة الأصناف في الصف الجديد
+                this.loadPPEItemsForDropdown();
+
+                return newRow;
+            };
+
+            if (itemsContainer) {
+                const initialRows = Array.from(itemsContainer.querySelectorAll('.ppe-item-row'));
+                initialRows.forEach(row => attachRemoveHandler(row));
+                refreshRemoveButtonsVisibility();
+            }
+
+            if (addItemBtn) {
+                if (isEdit) {
+                    addItemBtn.classList.add('hidden');
+                } else {
+                    addItemBtn.addEventListener('click', (event) => {
+                        event.preventDefault();
+                        createItemRow();
+                    });
+                }
+            }
+
             // Load PPE items list from stock and populate equipment type dropdown
             this.loadPPEItemsForDropdown(ppeData?.equipmentType);
             
@@ -1197,13 +1310,13 @@ const PPE = {
                     const employeePositionEl = document.getElementById('ppe-employee-position');
                     const employeeBranchEl = document.getElementById('ppe-employee-branch');
                     const employeeLocationEl = document.getElementById('ppe-employee-location');
-                    const equipmentTypeEl = document.getElementById('ppe-equipment-type');
-                    const quantityEl = document.getElementById('ppe-quantity');
+                    const itemsContainerEl = document.getElementById('ppe-items-container');
                     const receiptDateEl = document.getElementById('ppe-receipt-date');
                     const statusEl = document.getElementById('ppe-status');
+                    const notesEl = document.getElementById('ppe-notes');
                     
                     if (!employeeNameEl || !employeeCodeEl || !employeeDepartmentEl || !employeePositionEl || 
-                        !employeeBranchEl || !employeeLocationEl || !equipmentTypeEl || !quantityEl || 
+                        !employeeBranchEl || !employeeLocationEl || !itemsContainerEl || 
                         !receiptDateEl || !statusEl) {
                         Notification.error('بعض الحقول المطلوبة غير موجودة. يرجى تحديث الصفحة والمحاولة مرة أخرى.');
                         if (submitBtn) {
@@ -1213,8 +1326,67 @@ const PPE = {
                         return;
                     }
 
-                    const formData = {
-                        id: ppeData?.id || Utils.generateSequentialId('PPE', AppState.appData?.ppe || []),
+                    if (!receiptDateEl.value) {
+                        Notification.error('يرجى تحديد تاريخ الاستلام.');
+                        if (submitBtn) {
+                            submitBtn.disabled = false;
+                            submitBtn.innerHTML = originalText;
+                        }
+                        return;
+                    }
+
+                    const itemRows = Array.from(itemsContainerEl.querySelectorAll('.ppe-item-row'));
+                    if (!itemRows.length) {
+                        Notification.error('يجب إضافة صنف واحد على الأقل قبل حفظ الاستلام.');
+                        if (submitBtn) {
+                            submitBtn.disabled = false;
+                            submitBtn.innerHTML = originalText;
+                        }
+                        return;
+                    }
+
+                    const equipmentItems = [];
+                    for (const row of itemRows) {
+                        const typeSelect = row.querySelector('.ppe-equipment-type');
+                        const quantityInput = row.querySelector('.ppe-quantity');
+
+                        if (!typeSelect || !quantityInput) {
+                            Notification.error('بعض صفوف الأصناف غير مكتملة. يرجى التأكد من أن كل صف يحتوي على نوع وكمية.');
+                            if (submitBtn) {
+                                submitBtn.disabled = false;
+                                submitBtn.innerHTML = originalText;
+                            }
+                            return;
+                        }
+
+                        const typeValue = (typeSelect.value || '').trim();
+                        const quantityValue = parseInt(quantityInput.value, 10) || 0;
+
+                        if (!typeValue) {
+                            Notification.error('يرجى اختيار نوع المعدة لكل صف قبل الحفظ.');
+                            if (submitBtn) {
+                                submitBtn.disabled = false;
+                                submitBtn.innerHTML = originalText;
+                            }
+                            return;
+                        }
+
+                        if (quantityValue <= 0) {
+                            Notification.error('الكمية لكل صنف يجب أن تكون رقمًا أكبر من صفر.');
+                            if (submitBtn) {
+                                submitBtn.disabled = false;
+                                submitBtn.innerHTML = originalText;
+                            }
+                            return;
+                        }
+
+                        equipmentItems.push({
+                            equipmentType: typeValue,
+                            quantity: quantityValue
+                        });
+                    }
+
+                    const commonData = {
                         receiptNumber: receiptNumber,
                         employeeName: employeeNameEl.value.trim(),
                         employeeCode: employeeCodeEl.value.trim(),
@@ -1223,21 +1395,46 @@ const PPE = {
                         employeePosition: employeePositionEl.value.trim(),
                         employeeBranch: employeeBranchEl.value.trim(),
                         employeeLocation: employeeLocationEl.value.trim(),
-                        equipmentType: equipmentTypeEl.value,
-                        quantity: parseInt(quantityEl.value) || 1,
                         receiptDate: new Date(receiptDateEl.value).toISOString(),
                         status: statusEl.value,
-                        createdAt: ppeData?.createdAt || new Date().toISOString(),
-                        updatedAt: new Date().toISOString()
+                        notes: (notesEl?.value || '').trim()
                     };
 
                     try {
                         // 1. حفظ البيانات فوراً في الذاكرة
                         if (isEdit) {
                             const index = AppState.appData.ppe.findIndex(p => p.id === ppeData.id);
-                            if (index !== -1) AppState.appData.ppe[index] = formData;
+                            if (index !== -1) {
+                                const firstItem = equipmentItems[0] || { equipmentType: '', quantity: 0 };
+                                const existing = AppState.appData.ppe[index] || {};
+                                const updatedRecord = {
+                                    ...existing,
+                                    ...commonData,
+                                    equipmentType: firstItem.equipmentType,
+                                    quantity: firstItem.quantity,
+                                    createdAt: existing.createdAt || ppeData?.createdAt || new Date().toISOString(),
+                                    updatedAt: new Date().toISOString()
+                                };
+                                AppState.appData.ppe[index] = updatedRecord;
+                            }
                         } else {
-                            AppState.appData.ppe.push(formData);
+                            const existingPPEData = AppState.appData.ppe || [];
+                            const newItems = [];
+
+                            equipmentItems.forEach(item => {
+                                const allExisting = existingPPEData.concat(newItems);
+                                const id = Utils.generateSequentialId('PPE', allExisting);
+                                const record = {
+                                    id,
+                                    ...commonData,
+                                    equipmentType: item.equipmentType,
+                                    quantity: item.quantity,
+                                    createdAt: new Date().toISOString(),
+                                    updatedAt: new Date().toISOString()
+                                };
+                                newItems.push(record);
+                                AppState.appData.ppe.push(record);
+                            });
                         }
                         
                         // حفظ البيانات باستخدام window.DataManager
@@ -1281,7 +1478,8 @@ const PPE = {
     },
 
     async loadPPEItemsForDropdown(selectedValue = null) {
-        const equipmentTypeSelect = document.getElementById('ppe-equipment-type');
+        const equipmentTypeSelect = document.getElementById('ppe-equipment-type') 
+            || document.querySelector('.ppe-equipment-type');
         if (!equipmentTypeSelect) return;
 
         try {
@@ -1332,6 +1530,19 @@ const PPE = {
                 equipmentTypeSelect.appendChild(option);
             });
 
+            const optionsHTML = equipmentTypeSelect.innerHTML;
+
+            // مزامنة نفس الخيارات مع جميع قوائم الأنواع في صفوف الأصناف
+            const allSelects = document.querySelectorAll('.ppe-equipment-type');
+            allSelects.forEach(select => {
+                if (select === equipmentTypeSelect) return;
+                const previousValue = select.value;
+                select.innerHTML = optionsHTML;
+                if (previousValue) {
+                    select.value = previousValue;
+                }
+            });
+
             // If no items found, show default options
             if (items.length === 0) {
                 const defaultOptions = [
@@ -1365,6 +1576,17 @@ const PPE = {
                 <option value="بدلة واقية" ${selectedValue === 'بدلة واقية' ? 'selected' : ''}>بدلة واقية</option>
                 <option value="أخرى" ${selectedValue === 'أخرى' ? 'selected' : ''}>أخرى</option>
             `;
+
+            const optionsHTML = equipmentTypeSelect.innerHTML;
+            const allSelects = document.querySelectorAll('.ppe-equipment-type');
+            allSelects.forEach(select => {
+                if (select === equipmentTypeSelect) return;
+                const previousValue = select.value;
+                select.innerHTML = optionsHTML;
+                if (previousValue) {
+                    select.value = previousValue;
+                }
+            });
         }
     },
 
@@ -1431,6 +1653,10 @@ const PPE = {
                                     ${item.status || '-'}
                                 </span>
                             </div>
+                        </div>
+                        <div class="mt-4">
+                            <label class="text-sm font-semibold text-gray-600">ملاحظات:</label>
+                            <p class="text-gray-800 whitespace-pre-wrap">${Utils.escapeHTML(item.notes || 'لا توجد ملاحظات')}</p>
                         </div>
                     </div>
                 </div>
