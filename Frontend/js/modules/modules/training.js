@@ -10073,11 +10073,15 @@ const Training = {
                     <td>${endTime}</td>
                     <td>${totalHours} ساعة</td>
                     <td>
-                        <div class="flex items-center gap-2">
-                            <button class="btn-icon btn-icon-primary" onclick="Training.editAttendanceRecord('${record.id}')" title="تعديل">
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <button class="btn-secondary btn-sm" onclick="Training.viewAttendanceRecordDetails('${Utils.escapeHTML(String(record.id || ''))}')" title="عرض التفاصيل وجميع تدريبات الموظف" style="display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; font-size: 0.875rem;">
+                                <i class="fas fa-eye"></i>
+                                <span>عرض التفاصيل</span>
+                            </button>
+                            <button class="btn-icon btn-icon-primary" onclick="Training.editAttendanceRecord('${Utils.escapeHTML(String(record.id || ''))}')" title="تعديل">
                                 <i class="fas fa-edit"></i>
                             </button>
-                            <button class="btn-icon btn-icon-danger" onclick="Training.deleteAttendanceRecord('${record.id}')" title="حذف">
+                            <button class="btn-icon btn-icon-danger" onclick="Training.deleteAttendanceRecord('${Utils.escapeHTML(String(record.id || ''))}')" title="حذف">
                                 <i class="fas fa-trash"></i>
                             </button>
                         </div>
@@ -11171,6 +11175,124 @@ const Training = {
         });
     },
     
+    /**
+     * عرض تفاصيل سجل تدريب وجميع تدريبات الموظف في نفس النموذج
+     */
+    viewAttendanceRecordDetails(recordId) {
+        this.ensureData();
+        const registry = AppState.appData.trainingAttendance || [];
+        const record = registry.find(r => r.id === recordId);
+
+        if (!record) {
+            Notification.error('السجل غير موجود');
+            return;
+        }
+
+        const employeeCode = record.employeeCode || '';
+        const employeeName = record.employeeName || '-';
+        const allForEmployee = registry
+            .filter(r => (r.employeeCode || '') === employeeCode)
+            .sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
+
+        const formatTime = (t) => {
+            const cleaned = this.cleanTime(t);
+            if (!cleaned || cleaned === 'NaN:NaN' || String(cleaned).includes('NaN')) return '-';
+            return cleaned;
+        };
+
+        const modal = document.createElement('div');
+        modal.className = 'modal-overlay';
+        modal.innerHTML = `
+            <div class="modal-content" style="max-width: 1100px; max-height: 90vh; display: flex; flex-direction: column;">
+                <div class="modal-header">
+                    <h2 class="modal-title">
+                        <i class="fas fa-eye ml-2"></i>
+                        تفاصيل السجل — ${Utils.escapeHTML(employeeName)}
+                    </h2>
+                    <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="modal-body" style="overflow-y: auto; flex: 1;">
+                    <div class="mb-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-3">
+                            <i class="fas fa-file-alt ml-2 text-blue-600"></i>
+                            تفاصيل هذا السجل
+                        </h3>
+                        <div class="grid grid-cols-2 gap-3 text-sm">
+                            <div><span class="font-semibold text-gray-600">التاريخ:</span> ${record.date ? Utils.formatDate(record.date) : '-'}</div>
+                            <div><span class="font-semibold text-gray-600">نوع التدريب:</span> ${Utils.escapeHTML(record.trainingType || 'داخلي')}</div>
+                            <div><span class="font-semibold text-gray-600">المصنع:</span> ${Utils.escapeHTML(record.factoryName || record.factory || '-')}</div>
+                            <div><span class="font-semibold text-gray-600">الكود:</span> ${Utils.escapeHTML(record.employeeCode || '-')}</div>
+                            <div><span class="font-semibold text-gray-600">الاسم:</span> ${Utils.escapeHTML(record.employeeName || '-')}</div>
+                            <div><span class="font-semibold text-gray-600">الوظيفة:</span> ${Utils.escapeHTML(record.position || '-')}</div>
+                            <div><span class="font-semibold text-gray-600">الإدارة:</span> ${Utils.escapeHTML(record.department || '-')}</div>
+                            <div><span class="font-semibold text-gray-600">موضوع المحاضرة:</span> ${Utils.escapeHTML(record.topic || '-')}</div>
+                            <div><span class="font-semibold text-gray-600">اسم المحاضر:</span> ${Utils.escapeHTML(record.trainer || '-')}</div>
+                            <div><span class="font-semibold text-gray-600">وقت البدء:</span> ${formatTime(record.startTime)}</div>
+                            <div><span class="font-semibold text-gray-600">وقت الانتهاء:</span> ${formatTime(record.endTime)}</div>
+                            <div><span class="font-semibold text-gray-600">إجمالي ساعات التدريب:</span> ${record.totalHours || record.hours || '0'} ساعة</div>
+                        </div>
+                    </div>
+                    <div class="mt-4">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-3">
+                            <i class="fas fa-list-alt ml-2 text-green-600"></i>
+                            جميع تدريبات الموظف (${allForEmployee.length})
+                        </h3>
+                        ${allForEmployee.length > 0 ? `
+                        <div class="table-wrapper" style="overflow: auto; max-height: 400px; border: 1px solid #e5e7eb; border-radius: 8px;">
+                            <table class="data-table" style="margin: 0;">
+                                <thead style="position: sticky; top: 0; background: #f8fafc; z-index: 1;">
+                                    <tr>
+                                        <th>م</th>
+                                        <th>التاريخ</th>
+                                        <th>نوع التدريب</th>
+                                        <th>المصنع</th>
+                                        <th>موضوع المحاضرة</th>
+                                        <th>اسم المحاضر</th>
+                                        <th>وقت البدء</th>
+                                        <th>وقت الانتهاء</th>
+                                        <th>إجمالي الساعات</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${allForEmployee.map((r, i) => {
+                                        const isCurrent = r.id === recordId;
+                                        const startT = formatTime(r.startTime);
+                                        const endT = formatTime(r.endTime);
+                                        const hours = r.totalHours || r.hours || '0';
+                                        return `
+                                        <tr class="${isCurrent ? 'bg-blue-50' : ''}">
+                                            <td>${i + 1}</td>
+                                            <td>${r.date ? Utils.formatDate(r.date) : '-'}</td>
+                                            <td>${Utils.escapeHTML(r.trainingType || 'داخلي')}</td>
+                                            <td>${Utils.escapeHTML(r.factoryName || r.factory || '-')}</td>
+                                            <td>${Utils.escapeHTML(r.topic || '-')}</td>
+                                            <td>${Utils.escapeHTML(r.trainer || '-')}</td>
+                                            <td>${startT}</td>
+                                            <td>${endT}</td>
+                                            <td>${hours} ساعة</td>
+                                        </tr>`;
+                                    }).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                        ` : `
+                        <p class="text-gray-500 py-4">لا توجد سجلات أخرى لهذا الموظف.</p>
+                        `}
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn-secondary" onclick="this.closest('.modal-overlay').remove()">إغلاق</button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) modal.remove();
+        });
+    },
+
     /**
      * تعديل سجل تدريب
      */
