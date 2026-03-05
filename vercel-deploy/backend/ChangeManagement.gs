@@ -45,6 +45,45 @@ function addChangeRequestToSheet(requestData) {
             requestData.changeType = 'Administrative';
         }
 
+        // تهيئة دائرة الاعتماد الإلكترونية الافتراضية إن لم تُرسل من الواجهة
+        if (!requestData.approvalFlowJson) {
+            var nowIso = new Date().toISOString();
+            var requesterName = requestData.requestedBy || requestData.createdBy || '';
+            var requesterEmail = requestData.requestedByEmail || requestData.createdBy || '';
+            var fromDept = requestData.fromDepartment || requestData.requestingDepartment || '';
+            var toDept = requestData.toDepartment || requestData.responsibleImplementingDepartment || '';
+
+            var approvalFlow = [
+                {
+                    id: 'requesting_dept',
+                    name: 'الإدارة الطالبة للتغيير',
+                    role: 'requester_department',
+                    department: fromDept,
+                    status: 'approved',
+                    approvedByEmail: requesterEmail,
+                    approvedByName: requesterName,
+                    approvedAt: nowIso
+                },
+                {
+                    id: 'concerned_dept',
+                    name: 'الإدارة المعنية',
+                    role: 'target_department',
+                    department: toDept,
+                    status: 'pending'
+                },
+                {
+                    id: 'final_approval',
+                    name: 'الاعتماد النهائي',
+                    role: 'final_approval',
+                    status: 'pending'
+                }
+            ];
+
+            requestData.approvalFlowJson = JSON.stringify(approvalFlow);
+            requestData.currentApprovalStep = 'concerned_dept';
+            requestData.approvalStatus = 'in_progress';
+        }
+
         if (!requestData.timeLog) {
             requestData.timeLog = [{
                 action: 'created',
@@ -175,11 +214,165 @@ function updateChangeRequest(requestId, updateData) {
             });
         }
 
+        // تحديث حالة الاعتماد ودائرة الموافقات إن وُجدت بياناتها
+        try {
+            var approvalFlow = [];
+            if (updateData.approvalFlowJson) {
+                try {
+                    approvalFlow = JSON.parse(updateData.approvalFlowJson);
+                } catch (e1) {
+                    approvalFlow = [];
+                }
+            } else if (existing.approvalFlowJson) {
+                try {
+                    approvalFlow = JSON.parse(existing.approvalFlowJson);
+                } catch (e2) {
+                    approvalFlow = [];
+                }
+            }
+
+            if (approvalFlow && approvalFlow.length) {
+                // إذا كان هناك أي خطوة مرفوضة نعتبر الطلب مرفوضاً
+                var hasRejected = approvalFlow.some(function (s) { return s && s.status === 'rejected'; });
+                var nextPending = null;
+                if (!hasRejected) {
+                    for (var i2 = 0; i2 < approvalFlow.length; i2++) {
+                        if (approvalFlow[i2] && approvalFlow[i2].status === 'pending') {
+                            nextPending = approvalFlow[i2];
+                            break;
+                        }
+                    }
+                }
+
+                if (hasRejected) {
+                    updated.approvalStatus = 'rejected';
+                    // نحدد الخطوة المرفوضة الحالية إن أمكن
+                    var rejectedStep = approvalFlow.find(function (s) { return s && s.status === 'rejected'; });
+                    updated.currentApprovalStep = rejectedStep && rejectedStep.id ? rejectedStep.id : '';
+                    if (!updated.status || updated.status === existing.status) {
+                        updated.status = 'Rejected';
+                    }
+                } else if (!nextPending) {
+                    // كل الخطوات معتمدة
+                    updated.approvalStatus = 'approved';
+                    updated.currentApprovalStep = '';
+                    if (!updated.status || updated.status === existing.status || updated.status === 'In Review') {
+                        updated.status = 'Approved';
+                    }
+                } else {
+                    // لا يزال هناك خطوة قيد الانتظار
+                    updated.approvalStatus = 'in_progress';
+                    updated.currentApprovalStep = nextPending.id || '';
+                }
+
+                updated.approvalFlowJson = JSON.stringify(approvalFlow);
+            }
+        } catch (approvalError) {
+            Logger.log('Error handling approvalFlowJson in updateChangeRequest: ' + approvalError.toString());
+        }
+
         updated.timeLog = timeLog;
-        return updateSingleRowInSheet(SHEET_NAME, requestId, updated, spreadsheetId);
+
+        var saveResult = updateSingleRowInSheet(SHEET_NAME, requestId, updated, spreadsheetId);
+
+        // إرسال إشعارات للموافقين التاليين إن وُجدت خطوة قيد الانتظار
+        try {
+            if (updated.approvalStatus === 'in_progress' && updated.currentApprovalStep && updated.approvalFlowJson) {
+                var flowForNotif = JSON.parse(updated.approvalFlowJson);
+                var currentStep = flowForNotif.find(function (s) { return s && s.id === updated.currentApprovalStep; });
+                if (currentStep) {
+                    notifyChangeApprovalAssignees(requestId, updated, currentStep);
+                }
+            }
+        } catch (notifError) {
+            Logger.log('Error notifying change approval assignees: ' + notifError.toString());
+        }
+
+        return saveResult;
     } catch (error) {
         Logger.log('Error in updateChangeRequest: ' + error.toString());
         return { success: false, message: 'حدث خطأ أثناء تحديث طلب التغيير: ' + error.toString() };
+    }
+}
+
+/**
+ * إرسال إشعار للمستخدمين المسئولين عن خطوة اعتماد معينة في طلب تغيير
+ */
+function notifyChangeApprovalAssignees(requestId, requestData, step) {
+    try {
+        if (!requestId || !requestData || !step) return;
+        var spreadsheetId = getSpreadsheetId();
+        if (!spreadsheetId) return;
+
+        var users = readFromSheet('Users', spreadsheetId);
+        if (!users || !Array.isArray(users) || users.length === 0) return;
+
+        var recipients = [];
+        var stepRole = (step.role || '').toString();
+        var targetDept = '';
+
+        if (stepRole === 'requester_department') {
+            targetDept = requestData.fromDepartment || requestData.requestingDepartment || '';
+        } else if (stepRole === 'target_department') {
+            targetDept = requestData.toDepartment || requestData.responsibleImplementingDepartment || '';
+        }
+
+        // إذا كانت الخطوة تحتوي على بريد/مستخدم محدد، نستخدمه مباشرة
+        if (step.approvedByEmail) {
+            var directUser = users.find(function (u) {
+                return u && (u.email === step.approvedByEmail || u.id === step.approvedByEmail);
+            });
+            if (directUser) {
+                recipients.push(directUser);
+            }
+        }
+
+        // للأدوار المعتمدة على الإدارة
+        if (!recipients.length && targetDept) {
+            recipients = users.filter(function (u) {
+                if (!u || !u.active) return false;
+                var dept = (u.department || '').toString();
+                return dept && dept === targetDept;
+            });
+        }
+
+        // الاعتماد النهائي: نرسل للمديرين/المدراء
+        if (!recipients.length && stepRole === 'final_approval') {
+            recipients = users.filter(function (u) {
+                if (!u || !u.active) return false;
+                var role = (u.role || '').toString().toLowerCase();
+                return role === 'admin' || role === 'مدير' || role === 'مدير النظام' || role === 'hse_manager';
+            });
+        }
+
+        if (!recipients.length) return;
+
+        var title = 'طلب موافقة على طلب تغيير';
+        var msg = 'يوجد طلب تغيير في انتظار اعتمادك: ' +
+            (requestData.title || '') +
+            ' (' + (requestData.requestNumber || requestId) + ')' +
+            (step.name ? ' - خطوة: ' + step.name : '');
+
+        recipients.forEach(function (u) {
+            var userId = u.email || u.id;
+            if (!userId) return;
+            try {
+                addNotification({
+                    userId: userId,
+                    type: 'change_request_approval',
+                    priority: 'high',
+                    title: title,
+                    message: msg,
+                    relatedId: requestId,
+                    relatedType: 'ChangeRequest',
+                    dueDate: requestData.dueDate || null
+                });
+            } catch (e) {
+                Logger.log('Error sending change approval notification to ' + userId + ': ' + e.toString());
+            }
+        });
+    } catch (error) {
+        Logger.log('Error in notifyChangeApprovalAssignees: ' + error.toString());
     }
 }
 

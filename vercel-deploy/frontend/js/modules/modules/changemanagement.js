@@ -66,6 +66,9 @@ const ChangeManagement = {
                         <button type="button" class="change-tab-btn tab-btn" data-tab="register" onclick="ChangeManagement.switchTab('register')">
                             <i class="fas fa-history ml-2"></i> سجل التغييرات
                         </button>
+                        <button type="button" class="change-tab-btn tab-btn" data-tab="approvals" onclick="ChangeManagement.switchTab('approvals')">
+                            <i class="fas fa-inbox ml-2"></i> طلبات الموافقة
+                        </button>
                     </div>
                 </div>
                 <div class="mt-6" id="change-tab-requests">
@@ -88,6 +91,9 @@ const ChangeManagement = {
                             <div id="change-register-list-container"><p class="text-gray-500">لا توجد طلبات في السجل</p></div>
                         </div>
                     </div>
+                </div>
+                <div class="mt-6" id="change-tab-approvals" style="display:none;">
+                    ${this.renderApprovalsListHTML()}
                 </div>
             `;
 
@@ -134,6 +140,23 @@ const ChangeManagement = {
                 <div class="card-body">
                     <div id="change-requests-list-container">
                         <div class="empty-state py-8" id="change-requests-initial"><p class="text-gray-500">لا توجد طلبات تغيير</p></div>
+                    </div>
+                </div>
+            </div>
+        `;
+    },
+
+    /** تبويب طلبات الموافقة */
+    renderApprovalsListHTML() {
+        return `
+            <div class="content-card">
+                <div class="card-header border-b border-gray-200 px-4 py-3 flex items-center justify-between flex-wrap gap-2" style="background: var(--bg-secondary);">
+                    <h3 class="card-title text-lg font-semibold" style="margin: 0;">طلبات الموافقة</h3>
+                    <p class="text-sm text-gray-500 m-0">الطلبات التي تتطلب اعتمادك حسب دائرة الاعتماد الإلكترونية</p>
+                </div>
+                <div class="card-body">
+                    <div id="change-approvals-list-container">
+                        <div class="empty-state py-8"><p class="text-gray-500">لا توجد طلبات موافقة حالياً</p></div>
                     </div>
                 </div>
             </div>
@@ -217,6 +240,119 @@ const ChangeManagement = {
         container.innerHTML = `
             <div class="space-y-4">
                 ${requests.map(r => this.renderRequestCard(r, safe)).join('')}
+            </div>
+        `;
+    },
+
+    /** تحديد ما إذا كان هناك طلب يحتاج موافقة المستخدم الحالي */
+    isApprovalPendingForCurrentUser(req) {
+        try {
+            if (!req || !req.approvalFlowJson) return false;
+            const user = (typeof AppState !== 'undefined' && AppState.currentUser) ? AppState.currentUser : {};
+            const userEmail = (user.email || user.id || '').toString();
+            const userDept = (user.department || '').toString();
+            const canFinalApprove = typeof Permissions !== 'undefined' && Permissions.hasAccess && Permissions.hasAccess('change-management');
+
+            let flow = [];
+            if (Array.isArray(req.approvalFlowJson)) {
+                flow = req.approvalFlowJson;
+            } else if (typeof req.approvalFlowJson === 'string' && req.approvalFlowJson) {
+                try { flow = JSON.parse(req.approvalFlowJson); } catch (e) { flow = []; }
+            }
+            if (!flow || !flow.length) return false;
+
+            const pendingStep = flow.find(s => s && s.status === 'pending');
+            if (!pendingStep) return false;
+
+            // إذا كانت الخطوة موجهة لبريد/مستخدم معين
+            if (pendingStep.approvedByEmail && userEmail) {
+                if (pendingStep.approvedByEmail === userEmail) return true;
+            }
+
+            const role = (pendingStep.role || '').toString();
+            if (role === 'requester_department') {
+                const fromDept = (req.fromDepartment || req.requestingDepartment || '').toString();
+                return userDept && fromDept && userDept === fromDept;
+            }
+            if (role === 'target_department') {
+                const toDept = (req.toDepartment || req.responsibleImplementingDepartment || '').toString();
+                return userDept && toDept && userDept === toDept;
+            }
+            if (role === 'final_approval') {
+                return !!canFinalApprove;
+            }
+
+            return false;
+        } catch (e) {
+            return false;
+        }
+    },
+
+    /** عرض قائمة طلبات الموافقة للمستخدم الحالي */
+    renderApprovalsList(requests) {
+        const container = document.getElementById('change-approvals-list-container');
+        if (!container) return;
+        const list = Array.isArray(requests) ? requests : [];
+        const pendingForUser = list.filter(r => this.isApprovalPendingForCurrentUser(r));
+
+        if (!pendingForUser.length) {
+            container.innerHTML = `
+                <div class="empty-state py-8">
+                    <i class="fas fa-check-circle text-4xl text-green-400 mb-4"></i>
+                    <p class="text-gray-500">لا توجد طلبات موافقة في انتظارك حالياً</p>
+                </div>
+            `;
+            return;
+        }
+
+        const safe = (v) => (typeof Utils !== 'undefined' && Utils.escapeHTML) ? Utils.escapeHTML(String(v || '')) : String(v || '');
+
+        container.innerHTML = `
+            <div class="overflow-x-auto">
+                <table class="w-full border-collapse text-sm" style="border-color: var(--border-color);">
+                    <thead>
+                        <tr style="background: var(--bg-secondary); border-bottom: 1px solid var(--border-color);">
+                            <th class="p-3 text-right font-semibold" style="color: var(--text-primary);">رقم الطلب</th>
+                            <th class="p-3 text-right font-semibold" style="color: var(--text-primary);">الموضوع</th>
+                            <th class="p-3 text-right font-semibold" style="color: var(--text-primary);">الإدارة الطالبة</th>
+                            <th class="p-3 text-right font-semibold" style="color: var(--text-primary);">الإدارة المعنية</th>
+                            <th class="p-3 text-right font-semibold" style="color: var(--text-primary);">خطوة الاعتماد</th>
+                            <th class="p-3 text-right font-semibold" style="color: var(--text-primary);">الحالة</th>
+                            <th class="p-3 text-right font-semibold" style="color: var(--text-primary);">التاريخ</th>
+                            <th class="p-3 text-right font-semibold" style="color: var(--text-primary);">إجراءات</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${pendingForUser.map(r => {
+                            const displayNumber = this.getDisplayRequestNumber(r) || (r.requestNumber || r.id || '');
+                            const stepInfo = this.getCurrentApprovalStepLabel(r);
+                            return `
+                                <tr class="border-b hover:opacity-90" style="border-color: var(--border-color); background: var(--card-bg);">
+                                    <td class="p-3">${safe(displayNumber)}</td>
+                                    <td class="p-3">${safe(r.title || '—')}</td>
+                                    <td class="p-3">${safe(r.fromDepartment || r.requestingDepartment || '—')}</td>
+                                    <td class="p-3">${safe(r.toDepartment || r.responsibleImplementingDepartment || '—')}</td>
+                                    <td class="p-3">${safe(stepInfo.stepLabel)}</td>
+                                    <td class="p-3">${safe(stepInfo.statusLabel)}</td>
+                                    <td class="p-3">${this.formatDate(r.requestedAt || r.createdAt)}</td>
+                                    <td class="p-3">
+                                        <div class="flex flex-wrap gap-1">
+                                            <button type="button" onclick="ChangeManagement.handleApprovalAction('${safe(r.id)}','approve')" class="btn-primary btn-sm">
+                                                <i class="fas fa-check ml-1"></i> اعتماد
+                                            </button>
+                                            <button type="button" onclick="ChangeManagement.handleApprovalAction('${safe(r.id)}','reject')" class="btn-secondary btn-sm btn-danger">
+                                                <i class="fas fa-times ml-1"></i> رفض
+                                            </button>
+                                            <button type="button" onclick="ChangeManagement.showRequestDetail('${safe(r.id)}')" class="btn-secondary btn-sm">
+                                                <i class="fas fa-eye ml-1"></i> تفاصيل
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            `;
+                        }).join('')}
+                    </tbody>
+                </table>
             </div>
         `;
     },
@@ -1168,6 +1304,36 @@ const ChangeManagement = {
         return list.map(m => `<option value="${m}">${m}</option>`).join('');
     },
 
+    /** وصف الخطوة الحالية في دائرة الاعتماد */
+    getCurrentApprovalStepLabel(req) {
+        try {
+            let flow = [];
+            if (Array.isArray(req.approvalFlowJson)) {
+                flow = req.approvalFlowJson;
+            } else if (typeof req.approvalFlowJson === 'string' && req.approvalFlowJson) {
+                try { flow = JSON.parse(req.approvalFlowJson); } catch (e) { flow = []; }
+            }
+            if (!flow || !flow.length) {
+                return { stepLabel: 'غير محدد', statusLabel: this.getStatusLabel(req.status) };
+            }
+            const pending = flow.find(s => s && s.status === 'pending');
+            const rejected = flow.find(s => s && s.status === 'rejected');
+            const step = pending || rejected || flow[flow.length - 1];
+
+            let stepLabel = step && step.name ? step.name : 'غير محدد';
+            let statusLabel = '';
+            const status = (step && step.status) || '';
+            if (status === 'pending') statusLabel = 'قيد الاعتماد';
+            else if (status === 'approved') statusLabel = 'معتمد';
+            else if (status === 'rejected') statusLabel = 'مرفوض';
+            else statusLabel = this.getStatusLabel(req.status);
+
+            return { stepLabel, statusLabel };
+        } catch (e) {
+            return { stepLabel: 'غير محدد', statusLabel: this.getStatusLabel(req.status) };
+        }
+    },
+
     getStatusLabel(s) {
         const labels = { 'Draft': 'مسودة', 'In Review': 'قيد المراجعة', 'Approved': 'معتمد', 'Rejected': 'مرفوض', 'In Implementation': 'قيد التنفيذ', 'Completed': 'منفذ', 'Closed': 'مغلق' };
         return labels[s] || s;
@@ -1402,6 +1568,147 @@ ${data.map(r => '<tr>' + (Object.keys(data[0] || {})).map(k => '<td>' + safe(r[k
             if (typeof Loading !== 'undefined') Loading.hide();
             if (typeof Utils !== 'undefined' && Utils.safeError) Utils.safeError('تصدير PDF:', err);
             if (typeof Notification !== 'undefined') Notification.error('فشل التصدير: ' + (err.message || err));
+        }
+    },
+
+    /**
+     * تنفيذ إجراء اعتماد / رفض على خطوة دائرة الاعتماد الحالية
+     */
+    async handleApprovalAction(requestId, decision) {
+        try {
+            if (!requestId || (decision !== 'approve' && decision !== 'reject')) return;
+            const user = (typeof AppState !== 'undefined' && AppState.currentUser) ? AppState.currentUser : {};
+            const approverName = user.name || user.email || 'غير محدد';
+            const approverEmail = user.email || user.id || '';
+
+            let rejectionReason = '';
+            if (decision === 'reject') {
+                rejectionReason = window.prompt('برجاء توضيح سبب الرفض:', '') || 'بدون سبب';
+            }
+
+            if (typeof Loading !== 'undefined' && Loading.show) Loading.show('جاري تحديث حالة الاعتماد...');
+
+            // الحصول على آخر نسخة من الطلب من الخادم
+            const response = await GoogleIntegration.sendRequest({
+                action: 'getChangeRequest',
+                data: { requestId }
+            });
+            if (!response || !response.success || !response.data) {
+                if (typeof Loading !== 'undefined' && Loading.hide) Loading.hide();
+                if (typeof Notification !== 'undefined' && Notification.error) Notification.error('تعذر تحميل بيانات الطلب');
+                return;
+            }
+            const req = response.data;
+
+            let flow = [];
+            if (Array.isArray(req.approvalFlowJson)) {
+                flow = req.approvalFlowJson;
+            } else if (typeof req.approvalFlowJson === 'string' && req.approvalFlowJson) {
+                try { flow = JSON.parse(req.approvalFlowJson); } catch (e) { flow = []; }
+            }
+            if (!flow || !flow.length) {
+                if (typeof Loading !== 'undefined' && Loading.hide) Loading.hide();
+                if (typeof Notification !== 'undefined' && Notification.warning) Notification.warning('لا توجد دائرة اعتماد معرفة لهذا الطلب');
+                return;
+            }
+
+            const pendingIndex = flow.findIndex(s => s && s.status === 'pending');
+            if (pendingIndex === -1) {
+                if (typeof Loading !== 'undefined' && Loading.hide) Loading.hide();
+                if (typeof Notification !== 'undefined' && Notification.info) Notification.info('لا توجد خطوة قيد الاعتماد حالياً');
+                return;
+            }
+
+            const step = flow[pendingIndex];
+            const nowIso = new Date().toISOString();
+
+            if (decision === 'approve') {
+                step.status = 'approved';
+                step.approvedByEmail = approverEmail;
+                step.approvedByName = approverName;
+                step.approvedAt = nowIso;
+            } else {
+                step.status = 'rejected';
+                step.rejectedByEmail = approverEmail;
+                step.rejectedByName = approverName;
+                step.rejectedAt = nowIso;
+                step.rejectionReason = rejectionReason;
+            }
+
+            // إعادة حساب حالة الاعتماد العامة
+            let approvalStatus = 'in_progress';
+            let currentApprovalStep = '';
+            let newStatus = req.status || 'Draft';
+            const hasRejected = flow.some(s => s && s.status === 'rejected');
+            let nextPending = null;
+            if (!hasRejected) {
+                nextPending = flow.find(s => s && s.status === 'pending');
+            }
+
+            if (hasRejected) {
+                approvalStatus = 'rejected';
+                const rejectedStep = flow.find(s => s && s.status === 'rejected');
+                currentApprovalStep = rejectedStep && rejectedStep.id ? rejectedStep.id : '';
+                newStatus = 'Rejected';
+            } else if (!nextPending) {
+                approvalStatus = 'approved';
+                currentApprovalStep = '';
+                if (newStatus === 'Draft' || newStatus === 'In Review' || !newStatus) {
+                    newStatus = 'Approved';
+                }
+            } else {
+                approvalStatus = 'in_progress';
+                currentApprovalStep = nextPending.id || '';
+                if (newStatus === 'Draft') {
+                    newStatus = 'In Review';
+                }
+            }
+
+            const updateData = {
+                approvalFlowJson: JSON.stringify(flow),
+                approvalStatus: approvalStatus,
+                currentApprovalStep: currentApprovalStep,
+                status: newStatus,
+                updatedBy: approverEmail || approverName,
+                updateNote: decision === 'approve'
+                    ? 'اعتماد خطوة في دائرة اعتماد إدارة التغيرات'
+                    : 'رفض خطوة في دائرة اعتماد إدارة التغيرات'
+            };
+
+            if (approvalStatus === 'approved') {
+                updateData.approvedBy = approverName;
+                updateData.approvedAt = nowIso;
+            }
+            if (approvalStatus === 'rejected') {
+                updateData.rejectedBy = approverName;
+                updateData.rejectedAt = nowIso;
+                updateData.rejectionReason = rejectionReason;
+            }
+
+            const updateResponse = await GoogleIntegration.sendRequest({
+                action: 'updateChangeRequest',
+                data: {
+                    requestId: requestId,
+                    updateData: updateData
+                }
+            });
+
+            if (typeof Loading !== 'undefined' && Loading.hide) Loading.hide();
+
+            if (!updateResponse || !updateResponse.success) {
+                if (typeof Notification !== 'undefined' && Notification.error) Notification.error(updateResponse?.message || 'فشل تحديث حالة الاعتماد');
+                return;
+            }
+
+            if (typeof Notification !== 'undefined' && Notification.success) {
+                Notification.success(decision === 'approve' ? 'تم اعتماد الطلب بنجاح' : 'تم رفض الطلب بنجاح');
+            }
+            // إعادة تحميل الطلبات لتحديث التبويبات
+            this.loadChangeRequests();
+        } catch (error) {
+            if (typeof Loading !== 'undefined' && Loading.hide) Loading.hide();
+            if (typeof Utils !== 'undefined' && Utils.safeError) Utils.safeError('handleApprovalAction:', error);
+            if (typeof Notification !== 'undefined' && Notification.error) Notification.error('حدث خطأ أثناء تنفيذ إجراء الاعتماد');
         }
     },
 
@@ -1672,6 +1979,7 @@ ${data.map(r => '<tr>' + (Object.keys(data[0] || {})).map(k => '<td>' + safe(r[k
         this.state.activeTab = tab;
         const reqPanel = document.getElementById('change-tab-requests');
         const regPanel = document.getElementById('change-tab-register');
+        const apprPanel = document.getElementById('change-tab-approvals');
         const btns = document.querySelectorAll('.change-tab-btn');
         if (btns.length) {
             btns.forEach(function(b) {
@@ -1680,9 +1988,16 @@ ${data.map(r => '<tr>' + (Object.keys(data[0] || {})).map(k => '<td>' + safe(r[k
         }
         if (reqPanel) reqPanel.style.display = tab === 'requests' ? 'block' : 'none';
         if (regPanel) regPanel.style.display = tab === 'register' ? 'block' : 'none';
+        if (apprPanel) apprPanel.style.display = tab === 'approvals' ? 'block' : 'none';
         if (tab === 'register') {
             if (this.state.lastRequests && this.state.lastRequests.length > 0) {
                 this.renderRegisterTable(this.state.lastRequests);
+            } else {
+                this.loadChangeRequests();
+            }
+        } else if (tab === 'approvals') {
+            if (this.state.lastRequests && this.state.lastRequests.length > 0) {
+                this.renderApprovalsList(this.state.lastRequests);
             } else {
                 this.loadChangeRequests();
             }
