@@ -12101,36 +12101,36 @@ const PTW = {
                         </p>
                         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
                             <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">من تاريخ</label>
+                                <label class="block text-sm font-medium text-gray-700 mb-1 ptw-analysis-filter-label" data-filter-id="ptw-analysis-date-from">من تاريخ</label>
                                 <input type="date" id="ptw-analysis-date-from" class="form-input w-full" placeholder="اختياري">
                             </div>
                             <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">إلى تاريخ</label>
+                                <label class="block text-sm font-medium text-gray-700 mb-1 ptw-analysis-filter-label" data-filter-id="ptw-analysis-date-to">إلى تاريخ</label>
                                 <input type="date" id="ptw-analysis-date-to" class="form-input w-full" placeholder="اختياري">
                             </div>
                             <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">نوع التصريح</label>
+                                <label class="block text-sm font-medium text-gray-700 mb-1 ptw-analysis-filter-label" data-filter-id="ptw-analysis-work-type">نوع التصريح</label>
                                 <select id="ptw-analysis-work-type" class="form-input w-full">
                                     <option value="">— الكل —</option>
                                     ${(uniqueWorkTypes.length ? uniqueWorkTypes : ['أعمال ساخنة', 'أماكن مغلقة', 'عمل على ارتفاع', 'أعمال حفر', 'أعمال كهرباء', 'أعمال أخرى']).map(w => `<option value="${Utils.escapeHTML(w)}">${Utils.escapeHTML(w)}</option>`).join('')}
                                 </select>
                             </div>
                             <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">الجهة المصرح لها (مقاول)</label>
+                                <label class="block text-sm font-medium text-gray-700 mb-1 ptw-analysis-filter-label" data-filter-id="ptw-analysis-authorized">الجهة المصرح لها (مقاول)</label>
                                 <select id="ptw-analysis-authorized" class="form-input w-full">
                                     <option value="">— الكل —</option>
                                     ${uniqueAuthorized.map(a => `<option value="${Utils.escapeHTML(a)}">${Utils.escapeHTML(a)}</option>`).join('')}
                                 </select>
                             </div>
                             <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">الجهة الطالبة</label>
+                                <label class="block text-sm font-medium text-gray-700 mb-1 ptw-analysis-filter-label" data-filter-id="ptw-analysis-requesting">الجهة الطالبة</label>
                                 <select id="ptw-analysis-requesting" class="form-input w-full">
                                     <option value="">— الكل —</option>
                                     ${uniqueRequesting.map(r => `<option value="${Utils.escapeHTML(r)}">${Utils.escapeHTML(r)}</option>`).join('')}
                                 </select>
                             </div>
                             <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">الحالة</label>
+                                <label class="block text-sm font-medium text-gray-700 mb-1 ptw-analysis-filter-label" data-filter-id="ptw-analysis-status">الحالة</label>
                                 <select id="ptw-analysis-status" class="form-input w-full">
                                     <option value="">— الكل —</option>
                                     ${statusOptions.map(s => `<option value="${Utils.escapeHTML(s)}">${Utils.escapeHTML(s)}</option>`).join('')}
@@ -12471,6 +12471,71 @@ const PTW = {
                 summaryEl.textContent = 'عدد التصاريح في الفلتر الحالي: ' + total + ' — ' + filterText;
             }
         }
+
+        if (!document.getElementById('ptw-analysis-filter-badge-styles')) {
+            const style = document.createElement('style');
+            style.id = 'ptw-analysis-filter-badge-styles';
+            style.textContent = `
+                .ptw-analysis-filter-badge {
+                    display: inline-flex;
+                    align-items: center;
+                    justify-content: center;
+                    min-width: 22px;
+                    height: 18px;
+                    padding: 1px 6px;
+                    background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+                    color: #ffffff;
+                    border-radius: 9999px;
+                    font-size: 10px;
+                    font-weight: 700;
+                    margin-right: 4px;
+                    margin-left: 4px;
+                    box-shadow: 0 2px 4px rgba(79, 70, 229, 0.35);
+                }
+            `;
+            document.head.appendChild(style);
+        }
+
+        const filterIds = [
+            'ptw-analysis-date-from',
+            'ptw-analysis-date-to',
+            'ptw-analysis-work-type',
+            'ptw-analysis-authorized',
+            'ptw-analysis-requesting',
+            'ptw-analysis-status'
+        ];
+
+        filterIds.forEach(id => {
+            const input = document.getElementById(id);
+            if (!input) return;
+            const wrapper = input.closest('div');
+            if (!wrapper) return;
+            const label = wrapper.querySelector('.ptw-analysis-filter-label[data-filter-id="' + id + '"]');
+            if (!label) return;
+
+            const existing = label.querySelector('.ptw-analysis-filter-badge');
+            if (existing) existing.remove();
+
+            let isActive = false;
+            if (input.tagName === 'INPUT') {
+                isActive = !!input.value;
+            } else if (input.tagName === 'SELECT') {
+                isActive = !!input.value;
+            }
+
+            if (isActive && total > 0) {
+                const badge = document.createElement('span');
+                badge.className = 'ptw-analysis-filter-badge';
+                badge.title = 'عدد التصاريح المطابقة لهذا الفلتر مع الفلاتر الأخرى';
+                badge.textContent = String(total);
+                const icon = label.querySelector('i');
+                if (icon && icon.nextSibling) {
+                    icon.insertAdjacentElement('afterend', badge);
+                } else {
+                    label.appendChild(badge);
+                }
+            }
+        });
 
         if (typeof Chart === 'undefined') return;
         const chartIds = ['ptw-chart-work-type', 'ptw-chart-authorized', 'ptw-chart-status', 'ptw-chart-timeline'];

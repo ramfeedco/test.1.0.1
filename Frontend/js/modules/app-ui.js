@@ -2661,6 +2661,35 @@ window.UI = {
         this.bindSidebarEvents();
         this.initSyncButton();
         this.initUserConnectionStatus();
+
+        // تحميل البيانات تلقائياً من قاعدة البيانات مباشرة بعد تسجيل الدخول حسب صلاحيات المستخدم
+        try {
+            if (typeof AppState !== 'undefined' &&
+                AppState.currentUser &&
+                !AppState._autoSyncStarted &&
+                typeof GoogleIntegration !== 'undefined' &&
+                typeof GoogleIntegration.syncData === 'function' &&
+                typeof this.handleSyncClick === 'function') {
+
+                AppState._autoSyncStarted = true;
+
+                // تأخير بسيط للتأكد من تهيئة الواجهة والأزرار قبل البدء في التحميل
+                setTimeout(() => {
+                    try {
+                        // استخدام نفس منطق زر "تحميل البيانات" لضمان الاتساق في واجهة المستخدم
+                        this.handleSyncClick();
+                    } catch (e) {
+                        if (AppState.debugMode && typeof Utils !== 'undefined' && typeof Utils.safeWarn === 'function') {
+                            Utils.safeWarn('⚠️ فشل التحميل التلقائي للبيانات بعد تسجيل الدخول:', e);
+                        }
+                    }
+                }, 500);
+            }
+        } catch (e) {
+            if (typeof AppState !== 'undefined' && AppState.debugMode && typeof Utils !== 'undefined' && typeof Utils.safeWarn === 'function') {
+                Utils.safeWarn('⚠️ خطأ غير متوقع في التحميل التلقائي للبيانات بعد تسجيل الدخول:', e);
+            }
+        }
         
         // تحديث حالة الاتصال بعد تحميل البيانات (مع تأخير للتأكد من تحديث البيانات)
         setTimeout(() => {
