@@ -7923,11 +7923,15 @@ const Training = {
             Promise.allSettled([
                 // مزامنة مصفوفة التدريب
                 Promise.resolve().then(() => this.syncEmployeeTrainingMatrix(formData)),
-                // مزامنة سجل التدريب للموظفين
+                // مزامنة سجل التدريب للموظفين (ينتج عنه تحديث سجل الحضور)
                 Promise.resolve().then(() => this.syncAttendanceRegistry(formData)),
                 // حفظ في Google Sheets
                 GoogleIntegration.autoSave('Training', AppState.appData.training),
-                GoogleIntegration.autoSave('EmployeeTrainingMatrix', AppState.appData.employeeTrainingMatrix)
+                GoogleIntegration.autoSave('EmployeeTrainingMatrix', AppState.appData.employeeTrainingMatrix),
+                // حفظ سجل الحضور الناتج عن البرنامج التدريبي
+                (typeof GoogleIntegration !== 'undefined' && GoogleIntegration.autoSave)
+                    ? GoogleIntegration.autoSave('TrainingAttendance', AppState.appData.trainingAttendance)
+                    : Promise.resolve()
             ]).catch(error => {
                 Utils.safeError('خطأ في معالجة المهام الخلفية:', error);
             });
@@ -10011,10 +10015,7 @@ const Training = {
         this.ensureData();
         const container = document.getElementById('attendance-registry-table-body');
         if (!container) return;
-        
-        // مزامنة السجل مع التدريبات
-        this.syncAllAttendanceRegistry();
-        
+
         const registry = AppState.appData.trainingAttendance || [];
         
         if (registry.length === 0) {
@@ -10846,6 +10847,7 @@ const Training = {
             if (typeof GoogleIntegration !== 'undefined' && GoogleIntegration.autoSave) {
                 await GoogleIntegration.autoSave('TrainingAttendance', AppState.appData.trainingAttendance).catch(err => {
                     Utils.safeWarn('⚠️ فشل حفظ سجل التدريب في Google Sheets:', err);
+                    Notification.error('فشل حفظ سجل التدريب في Google Sheets. سيتم الاحتفاظ بالتغييرات محلياً فقط حتى يتم الحفظ بنجاح.');
                 });
             }
 
@@ -11161,6 +11163,7 @@ const Training = {
                 if (typeof GoogleIntegration !== 'undefined' && GoogleIntegration.autoSave) {
                     await GoogleIntegration.autoSave('TrainingAttendance', AppState.appData.trainingAttendance).catch(err => {
                         Utils.safeWarn('⚠️ فشل حفظ سجل التدريب في Google Sheets:', err);
+                        Notification.error('فشل حفظ سجل التدريب في Google Sheets. سيتم الاحتفاظ بالتغييرات محلياً فقط حتى يتم الحفظ بنجاح.');
                     });
                 }
                 Loading.hide();
@@ -11463,6 +11466,7 @@ const Training = {
                     if (typeof GoogleIntegration !== 'undefined' && GoogleIntegration.autoSave) {
                         await GoogleIntegration.autoSave('TrainingAttendance', registry).catch(err => {
                             Utils.safeWarn('⚠️ فشل حفظ التعديلات في Google Sheets:', err);
+                            Notification.error('فشل حفظ تعديلات سجل التدريب في Google Sheets. سيتم الاحتفاظ بالتغييرات محلياً فقط حتى يتم الحفظ بنجاح.');
                         });
                     }
                     
@@ -11509,6 +11513,7 @@ const Training = {
                 if (typeof GoogleIntegration !== 'undefined' && GoogleIntegration.autoSave) {
                     await GoogleIntegration.autoSave('TrainingAttendance', registry).catch(err => {
                         Utils.safeWarn('⚠️ فشل حفظ التعديلات في Google Sheets:', err);
+                        Notification.error('فشل حفظ تعديلات سجل التدريب في Google Sheets. سيتم الاحتفاظ بالتغييرات محلياً فقط حتى يتم الحفظ بنجاح.');
                     });
                 }
                 
