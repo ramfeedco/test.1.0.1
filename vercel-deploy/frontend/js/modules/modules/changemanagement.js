@@ -75,20 +75,20 @@ const ChangeManagement = {
                     ${this.renderRequestsListHTML()}
                 </div>
                 <div class="mt-6" id="change-tab-register" style="display:none;">
-                    <div class="content-card">
-                        <div class="card-header border-b border-gray-200 px-4 py-3 flex items-center justify-between flex-wrap gap-2" style="background: var(--bg-secondary);">
-                            <h3 class="card-title text-lg font-semibold" style="margin: 0;">جميع الطلبات المسجلة والمستلمة مع حالتها</h3>
-                            <div class="flex gap-2">
-                                <button type="button" class="btn-secondary btn-sm" onclick="ChangeManagement.exportToExcel()" title="تصدير إلى Excel">
-                                    <i class="fas fa-file-excel ml-2"></i> تصدير Excel
-                                </button>
-                                <button type="button" class="btn-secondary btn-sm" onclick="ChangeManagement.exportToPDF()" title="تصدير إلى PDF">
-                                    <i class="fas fa-file-pdf ml-2"></i> تصدير PDF
-                                </button>
-                            </div>
+                    <div class="content-card" style="overflow:hidden;">
+                        <div class="card-header border-b px-4 py-3" style="background:linear-gradient(135deg,rgba(59,130,246,0.12),rgba(14,165,233,0.08));text-align:center;">
+                            <h3 class="card-title text-lg font-semibold" style="margin:0;">جميع الطلبات المسجلة والمستلمة مع حالتها</h3>
                         </div>
-                        <div class="card-body">
-                            <div id="change-register-list-container"><p class="text-gray-500">لا توجد طلبات في السجل</p></div>
+                        <div class="card-body" style="padding:0;">
+                            <div id="change-register-list-container" style="max-height:480px;overflow-y:auto;overflow-x:auto;"><p class="text-gray-500 p-4">لا توجد طلبات في السجل</p></div>
+                        </div>
+                        <div class="card-footer" style="display:flex;justify-content:center;gap:8px;padding:1rem;border-top:1px solid var(--border-color);background:var(--bg-secondary);">
+                            <button type="button" class="btn-secondary btn-sm" onclick="ChangeManagement.exportToExcel()" title="تصدير إلى Excel">
+                                <i class="fas fa-file-excel ml-2"></i> تصدير Excel
+                            </button>
+                            <button type="button" class="btn-secondary btn-sm" onclick="ChangeManagement.exportToPDF()" title="تصدير إلى PDF">
+                                <i class="fas fa-file-pdf ml-2"></i> تصدير PDF
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -125,22 +125,22 @@ const ChangeManagement = {
 
     renderRequestsListHTML() {
         return `
-            <div class="content-card">
-                <div class="card-header border-b border-gray-200 px-4 py-3 flex items-center justify-between flex-wrap gap-2" style="background: var(--bg-secondary);">
-                    <h3 class="card-title text-lg font-semibold" style="margin: 0;">الطلبات</h3>
-                    <div class="flex gap-2">
-                        <button type="button" class="btn-secondary btn-sm" onclick="ChangeManagement.exportToExcel()" title="تصدير إلى Excel">
-                            <i class="fas fa-file-excel ml-2"></i> تصدير Excel
-                        </button>
-                        <button type="button" class="btn-secondary btn-sm" onclick="ChangeManagement.exportToPDF()" title="تصدير إلى PDF">
-                            <i class="fas fa-file-pdf ml-2"></i> تصدير PDF
-                        </button>
-                    </div>
+            <div class="content-card" style="overflow:hidden;">
+                <div class="card-header border-b px-4 py-3" style="background:linear-gradient(135deg,rgba(59,130,246,0.12),rgba(14,165,233,0.08));text-align:center;">
+                    <h3 class="card-title text-lg font-semibold" style="margin:0;">الطلبات</h3>
                 </div>
-                <div class="card-body">
-                    <div id="change-requests-list-container">
+                <div class="card-body" style="padding:0;">
+                    <div id="change-requests-list-container" style="max-height:480px;overflow-y:auto;overflow-x:hidden;padding:1rem;">
                         <div class="empty-state py-8" id="change-requests-initial"><p class="text-gray-500">لا توجد طلبات تغيير</p></div>
                     </div>
+                </div>
+                <div class="card-footer" style="display:flex;justify-content:center;gap:8px;padding:1rem;border-top:1px solid var(--border-color);background:var(--bg-secondary);">
+                    <button type="button" class="btn-secondary btn-sm" onclick="ChangeManagement.exportToExcel()" title="تصدير إلى Excel">
+                        <i class="fas fa-file-excel ml-2"></i> تصدير Excel
+                    </button>
+                    <button type="button" class="btn-secondary btn-sm" onclick="ChangeManagement.exportToPDF()" title="تصدير إلى PDF">
+                        <i class="fas fa-file-pdf ml-2"></i> تصدير PDF
+                    </button>
                 </div>
             </div>
         `;
@@ -403,12 +403,12 @@ const ChangeManagement = {
             '4-Low': 'bg-green-100 text-green-800'
         };
         return `
-            <div class="border rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer" onclick="ChangeManagement.showRequestDetail('${id}')">
+            <div class="border rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer" onclick="ChangeManagement.showRequestDetail('${id}')" style="background:linear-gradient(135deg,rgba(255,255,255,0.95),rgba(248,250,252,0.95));border-color:rgba(59,130,246,0.2);border-left:4px solid #3b82f6;">
                 <div class="flex items-start justify-between">
                     <div class="flex-1">
                         <div class="flex items-center gap-2 mb-2 flex-wrap">
-                            <span class="text-sm text-gray-500">${safe(this.getDisplayRequestNumber(req) || (req.requestNumber || req.id || ''))}</span>
-                            <h3 class="font-semibold text-lg">${title}</h3>
+                            <span class="text-sm font-medium" style="color:#0ea5e9;">${safe(this.getDisplayRequestNumber(req) || (req.requestNumber || req.id || ''))}</span>
+                            <h3 class="font-semibold text-lg" style="color:var(--text-primary);">${title}</h3>
                             <span class="px-2 py-1 rounded text-xs font-medium ${statusColors[req.status] || 'bg-gray-100'}">${this.getStatusLabel(req.status)}</span>
                             <span class="px-2 py-1 rounded text-xs font-medium ${priorityColors[req.priority] || 'bg-gray-100'}">${this.getPriorityLabel(req.priority)}</span>
                         </div>
@@ -1106,12 +1106,12 @@ const ChangeManagement = {
         modal.className = 'modal-overlay';
         modal.innerHTML = `
                 <div class="modal-content" style="max-width: 900px;">
-                    <div class="modal-header">
-                        <h2 class="modal-title">${safe(displayNumber)} — ${safe(req.title)}</h2>
-                        <button type="button" onclick="this.closest('.modal-overlay').remove()" class="modal-close"><i class="fas fa-times"></i></button>
+                    <div class="modal-header" style="display:flex;align-items:center;justify-content:center;position:relative;">
+                        <button type="button" onclick="this.closest('.modal-overlay').remove()" class="modal-close" style="position:absolute;right:0;top:50%;transform:translateY(-50%);"><i class="fas fa-times"></i></button>
+                        <h2 class="modal-title" style="margin:0;text-align:center;flex:1;">${safe(displayNumber)} — ${safe(req.title)}</h2>
                     </div>
-                    <div class="modal-body">
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div class="modal-body" style="padding:0;">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 p-4" style="background:linear-gradient(135deg,rgba(59,130,246,0.08),rgba(14,165,233,0.06));border-bottom:1px solid rgba(59,130,246,0.2);">
                             <div><span class="text-gray-500">الحالة:</span> <strong>${this.getStatusLabel(req.status)}</strong></div>
                             <div><span class="text-gray-500">نوع التغيير:</span> ${this.getChangeTypeLabel(req.changeType)}</div>
                             <div><span class="text-gray-500">الأولوية:</span> ${this.getPriorityLabel(req.priority)}</div>
@@ -1120,30 +1120,32 @@ const ChangeManagement = {
                             <div><span class="text-gray-500">التاريخ:</span> ${this.formatDate(req.requestedAt || req.createdAt)}</div>
                             ${req.relatedModule ? `<div><span class="text-gray-500">الموديول المرتبط:</span> ${safe(req.relatedModule)}</div>` : ''}
                         </div>
-                        <div class="mb-4">
+                        <div class="p-4 mb-0" style="background:rgba(251,191,36,0.06);border-bottom:1px solid rgba(251,191,36,0.2);">
                             <span class="text-gray-500 block mb-1">الوصف:</span>
                             <p class="text-gray-800">${safe(req.description || '—')}</p>
                         </div>
-                        ${req.riskAssessment ? `<div class="mb-4"><span class="text-gray-500 block mb-1">تقييم المخاطر:</span><p class="text-gray-800">${safe(req.riskAssessment)}</p></div>` : ''}
-                        ${req.mitigationActions ? `<div class="mb-4"><span class="text-gray-500 block mb-1">إجراءات التخفيف:</span><p class="text-gray-800">${safe(req.mitigationActions)}</p></div>` : ''}
-                        <div class="mb-4">
-                            <h3 class="font-semibold mb-2">سجل الأنشطة</h3>
-                            <div class="bg-gray-50 p-3 rounded max-h-48 overflow-y-auto">${timeLogHTML}</div>
+                        ${(req.riskAssessment || req.mitigationActions) ? `<div class="p-4 mb-0" style="background:rgba(239,68,68,0.05);border-bottom:1px solid rgba(239,68,68,0.15);">
+                            ${req.riskAssessment ? `<div class="mb-3"><span class="text-gray-500 block mb-1">تقييم المخاطر:</span><p class="text-gray-800">${safe(req.riskAssessment)}</p></div>` : ''}
+                            ${req.mitigationActions ? `<div><span class="text-gray-500 block mb-1">إجراءات التخفيف:</span><p class="text-gray-800">${safe(req.mitigationActions)}</p></div>` : ''}
+                        </div>` : ''}
+                        <div class="p-4" style="background:rgba(148,163,184,0.08);">
+                            <h3 class="font-semibold mb-2" style="background:rgba(71,85,105,0.15);padding:8px 12px;margin:-16px -16px 12px -16px;border-radius:4px;">سجل الأنشطة</h3>
+                            <div class="p-3 rounded" style="background:#f8fafc;max-height:200px;overflow-y:auto;overflow-x:hidden;border:1px solid #e2e8f0;">${timeLogHTML}</div>
                         </div>
-                        <div class="flex flex-wrap gap-2 mt-4">
-                            <button type="button" onclick="ChangeManagement.exportSingleRequestToPDF('${safe(req.id)}');" class="btn-secondary">
-                                <i class="fas fa-file-pdf ml-1"></i> تصدير تقرير الطلب
-                            </button>
-                            ${isDraft && canApprove ? `<button type="button" onclick="ChangeManagement.updateRequestStatus('${safe(req.id)}','In Review'); this.closest('.modal-overlay').remove();" class="btn-primary"><i class="fas fa-paper-plane ml-2"></i> إرسال للمراجعة</button>` : ''}
-                            ${isInReview && canApprove ? `
-                                <button type="button" onclick="ChangeManagement.updateRequestStatus('${safe(req.id)}','Approved'); this.closest('.modal-overlay').remove();" class="btn-primary"><i class="fas fa-check ml-2"></i> موافقة</button>
-                                <button type="button" onclick="ChangeManagement.rejectRequest('${safe(req.id)}');" class="btn-secondary btn-danger"><i class="fas fa-times ml-2"></i> رفض</button>
-                            ` : ''}
-                            ${isApproved && canApprove ? `<button type="button" onclick="ChangeManagement.updateRequestStatus('${safe(req.id)}','In Implementation'); this.closest('.modal-overlay').remove();" class="btn-primary"><i class="fas fa-play ml-2"></i> بدء التنفيذ</button>` : ''}
-                            ${isInImpl && canApprove ? `<button type="button" onclick="ChangeManagement.updateRequestStatus('${safe(req.id)}','Completed'); this.closest('.modal-overlay').remove();" class="btn-primary"><i class="fas fa-check-double ml-2"></i> تم التنفيذ</button>` : ''}
-                            ${(isCompleted || isInImpl) && canApprove && !isClosed ? `<button type="button" onclick="ChangeManagement.updateRequestStatus('${safe(req.id)}','Closed'); this.closest('.modal-overlay').remove();" class="btn-secondary"><i class="fas fa-lock ml-2"></i> إغلاق</button>` : ''}
-                            <button type="button" onclick="this.closest('.modal-overlay').remove()" class="btn-secondary">إغلاق</button>
-                        </div>
+                    </div>
+                    <div class="modal-footer" style="display:flex;flex-wrap:wrap;gap:8px;justify-content:center;padding:1rem 1.5rem;border-top:1px solid var(--border-color, #e5e7eb);background:var(--bg-secondary, #f9fafb);">
+                        <button type="button" onclick="ChangeManagement.exportSingleRequestToPDF('${safe(req.id)}');" class="btn-secondary">
+                            <i class="fas fa-file-pdf ml-1"></i> تصدير تقرير الطلب
+                        </button>
+                        ${isDraft && canApprove ? `<button type="button" onclick="ChangeManagement.updateRequestStatus('${safe(req.id)}','In Review'); this.closest('.modal-overlay').remove();" class="btn-primary"><i class="fas fa-paper-plane ml-2"></i> إرسال للمراجعة</button>` : ''}
+                        ${isInReview && canApprove ? `
+                            <button type="button" onclick="ChangeManagement.updateRequestStatus('${safe(req.id)}','Approved'); this.closest('.modal-overlay').remove();" class="btn-primary"><i class="fas fa-check ml-2"></i> موافقة</button>
+                            <button type="button" onclick="ChangeManagement.rejectRequest('${safe(req.id)}');" class="btn-secondary btn-danger"><i class="fas fa-times ml-2"></i> رفض</button>
+                        ` : ''}
+                        ${isApproved && canApprove ? `<button type="button" onclick="ChangeManagement.updateRequestStatus('${safe(req.id)}','In Implementation'); this.closest('.modal-overlay').remove();" class="btn-primary"><i class="fas fa-play ml-2"></i> بدء التنفيذ</button>` : ''}
+                        ${isInImpl && canApprove ? `<button type="button" onclick="ChangeManagement.updateRequestStatus('${safe(req.id)}','Completed'); this.closest('.modal-overlay').remove();" class="btn-primary"><i class="fas fa-check-double ml-2"></i> تم التنفيذ</button>` : ''}
+                        ${(isCompleted || isInImpl) && canApprove && !isClosed ? `<button type="button" onclick="ChangeManagement.updateRequestStatus('${safe(req.id)}','Closed'); this.closest('.modal-overlay').remove();" class="btn-secondary"><i class="fas fa-lock ml-2"></i> إغلاق</button>` : ''}
+                        <button type="button" onclick="this.closest('.modal-overlay').remove()" class="btn-secondary">إغلاق</button>
                     </div>
                 </div>
             `;
@@ -2009,27 +2011,27 @@ ${data.map(r => '<tr>' + (Object.keys(data[0] || {})).map(k => '<td>' + safe(r[k
         if (!container) return;
         const safe = (v) => (typeof Utils !== 'undefined' && Utils.escapeHTML) ? Utils.escapeHTML(String(v || '')) : String(v || '');
         if (!requests || requests.length === 0) {
-            container.innerHTML = '<div class="empty-state"><i class="fas fa-inbox text-4xl text-gray-300 mb-4"></i><p class="text-gray-500">لا توجد طلبات في السجل</p></div>';
+            container.innerHTML = '<div class="empty-state py-8"><i class="fas fa-inbox text-4xl text-gray-300 mb-4"></i><p class="text-gray-500">لا توجد طلبات في السجل</p></div>';
             return;
         }
         const statusColors = { 'Draft': 'bg-gray-100 text-gray-800', 'In Review': 'bg-blue-100 text-blue-800', 'Approved': 'bg-green-100 text-green-800', 'Rejected': 'bg-red-100 text-red-800', 'In Implementation': 'bg-purple-100 text-purple-800', 'Completed': 'bg-teal-100 text-teal-800', 'Closed': 'bg-gray-100 text-gray-600' };
         container.innerHTML = `
-            <div class="overflow-x-auto change-register-table-wrap">
+            <div class="change-register-table-wrap" style="overflow-x:auto;">
                 <table class="w-full border-collapse text-sm" style="border-color: var(--border-color);">
                     <thead>
-                        <tr style="background: var(--bg-secondary); border-bottom: 1px solid var(--border-color);">
-                            <th class="p-3 text-right font-semibold" style="color: var(--text-primary);">رقم الطلب</th>
-                            <th class="p-3 text-right font-semibold" style="color: var(--text-primary);">الموضوع</th>
-                            <th class="p-3 text-right font-semibold" style="color: var(--text-primary);">نوع التغيير</th>
-                            <th class="p-3 text-right font-semibold" style="color: var(--text-primary);">الحالة</th>
-                            <th class="p-3 text-right font-semibold" style="color: var(--text-primary);">مقدم الطلب</th>
-                            <th class="p-3 text-right font-semibold" style="color: var(--text-primary);">التاريخ</th>
-                            <th class="p-3 text-right font-semibold" style="color: var(--text-primary);">إجراءات</th>
+                        <tr>
+                            <th class="p-3 text-right font-semibold" style="position:sticky;top:0;z-index:1;background:linear-gradient(135deg,#3b82f6,#0ea5e9);color:#fff;border-bottom:1px solid #0284c7;">رقم الطلب</th>
+                            <th class="p-3 text-right font-semibold" style="position:sticky;top:0;z-index:1;background:linear-gradient(135deg,#3b82f6,#0ea5e9);color:#fff;border-bottom:1px solid #0284c7;">الموضوع</th>
+                            <th class="p-3 text-right font-semibold" style="position:sticky;top:0;z-index:1;background:linear-gradient(135deg,#3b82f6,#0ea5e9);color:#fff;border-bottom:1px solid #0284c7;">نوع التغيير</th>
+                            <th class="p-3 text-right font-semibold" style="position:sticky;top:0;z-index:1;background:linear-gradient(135deg,#3b82f6,#0ea5e9);color:#fff;border-bottom:1px solid #0284c7;">الحالة</th>
+                            <th class="p-3 text-right font-semibold" style="position:sticky;top:0;z-index:1;background:linear-gradient(135deg,#3b82f6,#0ea5e9);color:#fff;border-bottom:1px solid #0284c7;">مقدم الطلب</th>
+                            <th class="p-3 text-right font-semibold" style="position:sticky;top:0;z-index:1;background:linear-gradient(135deg,#3b82f6,#0ea5e9);color:#fff;border-bottom:1px solid #0284c7;">التاريخ</th>
+                            <th class="p-3 text-right font-semibold" style="position:sticky;top:0;z-index:1;background:linear-gradient(135deg,#3b82f6,#0ea5e9);color:#fff;border-bottom:1px solid #0284c7;">إجراءات</th>
                         </tr>
                     </thead>
                     <tbody>
-                        ${requests.map(r => `
-                            <tr class="border-b hover:opacity-90" style="border-color: var(--border-color); background: var(--card-bg);">
+                        ${requests.map((r, i) => `
+                            <tr class="border-b hover:opacity-90" style="border-color: var(--border-color); background: ${i % 2 === 0 ? 'var(--card-bg)' : 'rgba(241,245,249,0.8)'};">
                                 <td class="p-3">${safe(this.getDisplayRequestNumber(r) || (r.requestNumber || r.id || ''))}</td>
                                 <td class="p-3">${safe(r.title || '—')}</td>
                                 <td class="p-3">${this.getChangeTypeLabel(r.changeType)}</td>
