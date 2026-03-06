@@ -117,7 +117,7 @@ function getDefaultHeaders(sheetName) {
         'ChemicalSafety': ['id', 'isoCode', 'chemicalName', 'trainer', 'date', 'status', 'description', 'createdAt', 'updatedAt'],
         'Chemical_Register': ['id', 'serialNumber', 'rmName', 'physicalShape', 'purposeOfUse', 'methodOfApplication', 'department', 'msdsArabic', 'msdsEnglish', 'localImport', 'manufacturer', 'agentEgypt', 'containerType', 'containerDisposalMethod', 'hazardClass', 'hazardDescription', 'locationStore', 'qtyYear', 'nfpaDiamond', 'createdAt', 'updatedAt'],
         'DailyObservations': ['id', 'isoCode', 'siteId', 'siteName', 'placeId', 'locationName', 'observationType', 'date', 'shift', 'details', 'correctiveAction', 'responsibleDepartment', 'riskLevel', 'observerName', 'expectedCompletionDate', 'status', 'overdays', 'timestamp', 'reviewedBy', 'remarks', 'attachments', 'createdAt', 'updatedAt'],
-        'DailySafetyCheckList': ['id', 'siteId', 'siteName', 'date', 'inspectorName', 'shift', 'q1', 'q2', 'q3', 'q4', 'q5', 'q6', 'q7', 'q8', 'q9', 'q10', 'q11', 'q12', 'q13', 'q14', 'q15', 'q15Reading', 'q16', 'q17', 'notes', 'createdAt', 'updatedAt'],
+        'DailySafetyCheckList': ['id', 'reportNumber', 'siteId', 'siteName', 'date', 'inspectorName', 'shift', 'q1', 'q2', 'q3', 'q4', 'q5', 'q6', 'q7', 'q8', 'q9', 'q10', 'q11', 'q12', 'q13', 'q14', 'q15', 'q15Reading', 'q16', 'q17', 'notes', 'createdAt', 'updatedAt'],
         'ISODocuments': ['id', 'isoCode', 'name', 'type', 'version', 'department', 'createdAt', 'updatedAt'],
         'ISOProcedures': ['id', 'isoCode', 'name', 'department', 'version', 'createdAt', 'updatedAt'],
         'ISOForms': ['id', 'isoCode', 'name', 'type', 'createdAt', 'updatedAt'],

@@ -3189,6 +3189,9 @@ const PeriodicInspections = {
         const dateVal = record && record.date ? String(record.date).slice(0, 10) : new Date().toISOString().slice(0, 10);
         const modal = document.createElement('div');
         modal.className = 'modal-overlay dsc-modal-overlay';
+        const reportNumberDisplayValue = record
+            ? Utils.escapeHTML(record.reportNumber || this.getDailySafetyCheckListSerialNumber(record))
+            : '';
         modal.innerHTML = `
             <style>
                 .dsc-modal-overlay .dsc-modal-box { max-width: 780px; max-height: 90vh; overflow: hidden; display: flex; flex-direction: column; border-radius: 12px; box-shadow: 0 20px 60px rgba(0,0,0,0.2); background: #fff; }
@@ -3214,6 +3217,7 @@ const PeriodicInspections = {
                     <div class="dsc-section">
                         <h3 class="dsc-section-title"><i class="fas fa-info-circle"></i>البيانات الأساسية</h3>
                         <div class="form-grid form-grid-2">
+                            <div class="form-group"><label class="form-label">رقم التقرير</label><input type="text" id="dsc-reportNumber" class="form-input" value="${reportNumberDisplayValue}" placeholder="سيُعيّن تلقائياً عند الحفظ" readonly></div>
                             <div class="form-group"><label class="form-label required">المصنع/الموقع</label><select id="dsc-siteId" class="form-input" required>${siteOptions}</select></div>
                             <div class="form-group"><label class="form-label required">التاريخ</label><input type="date" id="dsc-date" class="form-input" required value="${dateVal}"></div>
                             <div class="form-group"><label class="form-label required">القائم بالمرور</label><select id="dsc-inspectorName" class="form-input" required><option value="">جاري التحميل...</option></select></div>
@@ -3261,6 +3265,7 @@ const PeriodicInspections = {
      */
     getDailySafetyCheckListSerialNumber(record) {
         if (!record) return '00-0-0';
+        if (record.reportNumber && String(record.reportNumber).trim()) return String(record.reportNumber).trim();
         const dateStr = (record.date && String(record.date).slice(0, 10)) || '';
         const day = dateStr.length >= 10 ? String(parseInt(dateStr.slice(8, 10), 10) || 0).padStart(2, '0') : '00';
         const shiftMap = { 'الأولى': '1', 'الثانية': '2', 'الثالثة': '3' };
@@ -3273,6 +3278,40 @@ const PeriodicInspections = {
         const idx = sameDayShift.findIndex(r => r.id === record.id);
         const no = idx >= 0 ? idx + 1 : sameDayShift.length + 1;
         return `${day}-${sh}-${no}`;
+    },
+
+    /**
+     * توليد رقم تقرير ثابت عند الإنشاء: DD-SH-NO
+     * يعتمد على أكبر NO موجود لنفس اليوم والوردية (باستخدام reportNumber إن وُجد).
+     */
+    getNextDailySafetyCheckListReportNumber(payload, records) {
+        const dateStr = (payload && payload.date && String(payload.date).slice(0, 10)) || '';
+        const day = dateStr.length >= 10 ? String(parseInt(dateStr.slice(8, 10), 10) || 0).padStart(2, '0') : '00';
+        const shiftMap = { 'الأولى': '1', 'الثانية': '2', 'الثالثة': '3' };
+        const sh = shiftMap[payload && payload.shift] || '0';
+        const list = Array.isArray(records) ? records : this.getDailySafetyCheckListRecords();
+        let maxNo = 0;
+        for (let i = 0; i < list.length; i++) {
+            const r = list[i];
+            if (!r) continue;
+            const rDate = (r.date && String(r.date).slice(0, 10)) || '';
+            const rSh = shiftMap[r.shift] || '0';
+            if (rDate !== dateStr || rSh !== sh) continue;
+            const rn = (r.reportNumber && String(r.reportNumber).trim()) ? String(r.reportNumber).trim() : '';
+            const m = rn.match(/^(\d{2})-(\d)-(\d+)$/);
+            if (m && m[1] === day && m[2] === sh) {
+                const n = parseInt(m[3], 10);
+                if (!isNaN(n) && n > maxNo) maxNo = n;
+                continue;
+            }
+            const serial = this.getDailySafetyCheckListSerialNumber(r);
+            const m2 = String(serial || '').trim().match(/^(\d{2})-(\d)-(\d+)$/);
+            if (m2 && m2[1] === day && m2[2] === sh) {
+                const n = parseInt(m2[3], 10);
+                if (!isNaN(n) && n > maxNo) maxNo = n;
+            }
+        }
+        return `${day}-${sh}-${maxNo + 1}`;
     },
 
     /**
@@ -3515,7 +3554,8 @@ const PeriodicInspections = {
             if (idx >= 0) { list[idx] = { ...list[idx], ...payload, updatedAt: now }; }
         } else {
             const id = 'DSC-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6);
-            list.push({ id, ...payload, createdAt: now, updatedAt: now });
+            const reportNumber = this.getNextDailySafetyCheckListReportNumber(payload, list);
+            list.push({ id, reportNumber, ...payload, createdAt: now, updatedAt: now });
         }
         if (typeof DataManager !== 'undefined' && DataManager.save) DataManager.save();
         // إغلاق النموذج فوراً ثم تحديث الجدول والمزامنة في الخلفية
