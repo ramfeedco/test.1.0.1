@@ -4619,8 +4619,22 @@ window.UI = {
                         }
                     } else {
                         if (!silent) {
-                            Utils.safeWarn('وحدة Users غير موجودة - جاري انتظار التحميل...');
-                            this.waitForModuleAndLoad('Users', 'users', silent);
+                            Utils.safeError('❌ موديول Users غير متوفر - الموديول لم يُحمّل بشكل صحيح');
+                            // عرض رسالة خطأ في القسم
+                            const section = document.getElementById('users-section');
+                            if (section) {
+                                section.innerHTML = `
+                                    <div class="content-card">
+                                        <div class="card-body">
+                                            <div class="empty-state">
+                                                <i class="fas fa-exclamation-triangle text-4xl text-red-400 mb-4"></i>
+                                                <p class="text-gray-500">فشل تحميل موديول المستخدمين</p>
+                                                <p class="text-sm text-gray-400 mt-2">يرجى تحديث الصفحة</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                `;
+                            }
                         }
                     }
                     break;
@@ -4630,9 +4644,8 @@ window.UI = {
                         UserTasks.load();
                     } else {
                         if (!silent) {
-                            Utils.safeWarn('وحدة UserTasks غير موجودة - جاري انتظار التحميل...');
+                            Utils.safeError('❌ موديول UserTasks غير متوفر - الموديول لم يُحمّل بشكل صحيح');
                         }
-                        this.waitForModuleAndLoad('UserTasks', 'user-tasks', silent);
                     }
                     break;
                 case 'employees':
@@ -4640,8 +4653,7 @@ window.UI = {
                     if (typeof Employees !== 'undefined' && Employees.load) {
                         Employees.load();
                     } else {
-                        Utils.safeError(' وحدة Employees غير موجودة - جاري انتظار التحميل...');
-                        this.waitForModuleAndLoad('Employees', 'employees', silent);
+                        Utils.safeError('❌ موديول Employees غير متوفر - الموديول لم يُحمّل بشكل صحيح');
                     }
                     break;
                 case 'incidents':
@@ -4653,9 +4665,7 @@ window.UI = {
                         }
                     } else {
                         if (!silent) {
-                            Utils.safeError(' وحدة Incidents غير موجودة');
-                            // محاولة انتظار تحميل الموديول ثم تحميله
-                            this.waitForModuleAndLoad('Incidents', 'incidents', silent);
+                            Utils.safeError('❌ موديول Incidents غير متوفر - الموديول لم يُحمّل بشكل صحيح');
                         }
                     }
                     break;
@@ -4664,8 +4674,7 @@ window.UI = {
                     if (typeof NearMiss !== 'undefined' && NearMiss.load) {
                         NearMiss.load();
                     } else {
-                        Utils.safeError(' وحدة NearMiss غير موجودة - جاري انتظار التحميل...');
-                        this.waitForModuleAndLoad('NearMiss', 'nearmiss', silent);
+                        Utils.safeError('❌ موديول NearMiss غير متوفر - الموديول لم يُحمّل بشكل صحيح');
                     }
                     break;
                 case 'ptw':
@@ -4673,8 +4682,7 @@ window.UI = {
                     if (typeof PTW !== 'undefined' && PTW.load) {
                         PTW.load();
                     } else {
-                        Utils.safeError(' وحدة PTW غير موجودة - جاري انتظار التحميل...');
-                        this.waitForModuleAndLoad('PTW', 'ptw', silent);
+                        Utils.safeError('❌ موديول PTW غير متوفر - الموديول لم يُحمّل بشكل صحيح');
                     }
                     break;
                 case 'training':
@@ -4682,8 +4690,7 @@ window.UI = {
                     if (typeof Training !== 'undefined' && Training.load) {
                         Training.load();
                     } else {
-                        Utils.safeError(' وحدة Training غير موجودة - جاري انتظار التحميل...');
-                        this.waitForModuleAndLoad('Training', 'training', silent);
+                        Utils.safeError('❌ موديول Training غير متوفر - الموديول لم يُحمّل بشكل صحيح');
                     }
                     break;
                 case 'clinic':
@@ -4721,19 +4728,7 @@ window.UI = {
                             }, 500);
                         }
                     } else {
-                        // ✅ تحسين: استخدام safeLog بدلاً من safeError لأن هذا مجرد انتظار طبيعي للتحميل
-                        if (!silent && AppState.debugMode) {
-                            Utils.safeLog('⏳ وحدة Clinic غير موجودة بعد - جاري انتظار التحميل...');
-                        }
-                        this.waitForModuleAndLoad('Clinic', 'clinic', silent).then(() => {
-                            setTimeout(() => {
-                                this.ensureNavigationIcons('clinic');
-                            }, 500);
-                        }).catch((error) => {
-                            if (!silent) {
-                                Utils.safeError('❌ فشل تحميل مديول العيادة:', error);
-                            }
-                        });
+                        Utils.safeError('❌ موديول Clinic غير متوفر - الموديول لم يُحمّل بشكل صحيح');
                     }
                     break;
                 case 'fire-equipment':
@@ -4749,10 +4744,8 @@ window.UI = {
                         } catch (error) {
                             Utils.safeError('خطأ في استدعاء FireEquipment.load:', error);
                         }
-                    } else {
                         if (!silent) {
-                            Utils.safeWarn('وحدة FireEquipment غير موجودة - جاري انتظار التحميل...');
-                            this.waitForModuleAndLoad('FireEquipment', 'fire-equipment', silent);
+                            Utils.safeError('❌ موديول FireEquipment غير متوفر - الموديول لم يُحمّل بشكل صحيح');
                         }
                     }
                     break;
@@ -4768,20 +4761,16 @@ window.UI = {
                         } catch (error) {
                             Utils.safeError('خطأ في استدعاء PeriodicInspections.load:', error);
                         }
-                    } else {
                         if (!silent) {
-                            Utils.safeWarn('وحدة PeriodicInspections غير موجودة - جاري انتظار التحميل...');
-                            this.waitForModuleAndLoad('PeriodicInspections', 'periodic-inspections', silent);
+                            Utils.safeError('❌ موديول PeriodicInspections غير متوفر - الموديول لم يُحمّل بشكل صحيح');
                         }
                     }
                     break;
                 case 'ppe':
                     if (typeof PPE !== 'undefined' && PPE.load) {
                         PPE.load();
-                    } else {
                         if (!silent) {
-                            Utils.safeWarn('وحدة PPE غير موجودة - جاري انتظار التحميل...');
-                            this.waitForModuleAndLoad('PPE', 'ppe', silent);
+                            Utils.safeError('❌ موديول PPE غير متوفر - الموديول لم يُحمّل بشكل صحيح');
                         }
                     }
                     break;
@@ -4835,10 +4824,8 @@ window.UI = {
                                 `;
                             }
                         }
-                    } else {
                         if (!silent) {
-                            Utils.safeWarn('وحدة Violations غير موجودة - جاري انتظار التحميل...');
-                            this.waitForModuleAndLoad('Violations', 'violations', silent);
+                            Utils.safeError('❌ موديول Violations غير متوفر - الموديول لم يُحمّل بشكل صحيح');
                         }
                     }
                     break;
@@ -4877,7 +4864,6 @@ window.UI = {
                     } else {
                         if (!silent) {
                             Utils.safeWarn('وحدة Contractors غير موجودة - جاري انتظار التحميل...');
-                            this.waitForModuleAndLoad('Contractors', 'contractors', silent);
                         } else {
                             // في حالة silent، نعرض رسالة تحميل
                             const section = document.getElementById('contractors-section');
@@ -4910,20 +4896,16 @@ window.UI = {
                         } catch (error) {
                             Utils.safeError('خطأ في استدعاء BehaviorMonitoring.load:', error);
                         }
-                    } else {
                         if (!silent) {
-                            Utils.safeWarn('وحدة BehaviorMonitoring غير موجودة - جاري انتظار التحميل...');
-                            this.waitForModuleAndLoad('BehaviorMonitoring', 'behavior-monitoring', silent);
+                            Utils.safeError('❌ موديول BehaviorMonitoring غير متوفر - الموديول لم يُحمّل بشكل صحيح');
                         }
                     }
                     break;
                 case 'chemical-safety':
                     if (typeof ChemicalSafety !== 'undefined' && ChemicalSafety.load) {
                         ChemicalSafety.load();
-                    } else {
                         if (!silent) {
-                            Utils.safeWarn('وحدة ChemicalSafety غير موجودة - جاري انتظار التحميل...');
-                            this.waitForModuleAndLoad('ChemicalSafety', 'chemical-safety', silent);
+                            Utils.safeError('❌ موديول ChemicalSafety غير متوفر - الموديول لم يُحمّل بشكل صحيح');
                         }
                     }
                     break;
@@ -4939,30 +4921,24 @@ window.UI = {
                         } catch (error) {
                             Utils.safeError('خطأ في استدعاء DailyObservations.load:', error);
                         }
-                    } else {
                         if (!silent) {
-                            Utils.safeWarn('وحدة DailyObservations غير موجودة - جاري انتظار التحميل...');
-                            this.waitForModuleAndLoad('DailyObservations', 'daily-observations', silent);
+                            Utils.safeError('❌ موديول DailyObservations غير متوفر - الموديول لم يُحمّل بشكل صحيح');
                         }
                     }
                     break;
                 case 'iso':
                     if (typeof ISO !== 'undefined' && ISO.load) {
                         ISO.load();
-                    } else {
                         if (!silent) {
-                            Utils.safeWarn('وحدة ISO غير موجودة - جاري انتظار التحميل...');
-                            this.waitForModuleAndLoad('ISO', 'iso', silent);
+                            Utils.safeError('❌ موديول ISO غير متوفر - الموديول لم يُحمّل بشكل صحيح');
                         }
                     }
                     break;
                 case 'emergency':
                     if (typeof Emergency !== 'undefined' && Emergency.load) {
                         Emergency.load();
-                    } else {
                         if (!silent) {
-                            Utils.safeWarn('وحدة Emergency غير موجودة - جاري انتظار التحميل...');
-                            this.waitForModuleAndLoad('Emergency', 'emergency', silent);
+                            Utils.safeError('❌ موديول Emergency غير متوفر - الموديول لم يُحمّل بشكل صحيح');
                         }
                     }
                     break;
@@ -4978,40 +4954,32 @@ window.UI = {
                         } catch (error) {
                             Utils.safeError('خطأ في استدعاء RiskAssessment.load:', error);
                         }
-                    } else {
                         if (!silent) {
-                            Utils.safeWarn('وحدة RiskAssessment غير موجودة - جاري انتظار التحميل...');
-                            this.waitForModuleAndLoad('RiskAssessment', 'risk-assessment', silent);
+                            Utils.safeError('❌ موديول RiskAssessment غير متوفر - الموديول لم يُحمّل بشكل صحيح');
                         }
                     }
                     break;
                 case 'sop-jha':
                     if (typeof SOPJHA !== 'undefined' && SOPJHA.load) {
                         SOPJHA.load();
-                    } else {
                         if (!silent) {
-                            Utils.safeWarn('وحدة SOPJHA غير موجودة - جاري انتظار التحميل...');
-                            this.waitForModuleAndLoad('SOPJHA', 'sop-jha', silent);
+                            Utils.safeError('❌ موديول SOPJHA غير متوفر - الموديول لم يُحمّل بشكل صحيح');
                         }
                     }
                     break;
                 case 'legal-documents':
                     if (typeof LegalDocuments !== 'undefined' && LegalDocuments.load) {
                         LegalDocuments.load();
-                    } else {
                         if (!silent) {
-                            Utils.safeWarn('وحدة LegalDocuments غير موجودة - جاري انتظار التحميل...');
-                            this.waitForModuleAndLoad('LegalDocuments', 'legal-documents', silent);
+                            Utils.safeError('❌ موديول LegalDocuments غير متوفر - الموديول لم يُحمّل بشكل صحيح');
                         }
                     }
                     break;
                 case 'sustainability':
                     if (typeof Sustainability !== 'undefined' && Sustainability.load) {
                         Sustainability.load();
-                    } else {
                         if (!silent) {
-                            Utils.safeWarn('وحدة Sustainability غير موجودة - جاري انتظار التحميل...');
-                            this.waitForModuleAndLoad('Sustainability', 'sustainability', silent);
+                            Utils.safeError('❌ موديول Sustainability غير متوفر - الموديول لم يُحمّل بشكل صحيح');
                         }
                     }
                     break;
@@ -5027,40 +4995,32 @@ window.UI = {
                         } catch (error) {
                             Utils.safeError('خطأ في استدعاء AIAssistant.load:', error);
                         }
-                    } else {
                         if (!silent) {
-                            Utils.safeWarn('وحدة AIAssistant غير موجودة - جاري انتظار التحميل...');
-                            this.waitForModuleAndLoad('AIAssistant', 'ai-assistant', silent);
+                            Utils.safeError('❌ موديول AIAssistant غير متوفر - الموديول لم يُحمّل بشكل صحيح');
                         }
                     }
                     break;
                 case 'safety-performance-kpis':
                     if (typeof SafetyPerformanceKPIs !== 'undefined' && SafetyPerformanceKPIs.load) {
                         SafetyPerformanceKPIs.load();
-                    } else {
                         if (!silent) {
-                            Utils.safeWarn('وحدة SafetyPerformanceKPIs غير موجودة - جاري انتظار التحميل...');
-                            this.waitForModuleAndLoad('SafetyPerformanceKPIs', 'safety-performance-kpis', silent);
+                            Utils.safeError('❌ موديول SafetyPerformanceKPIs غير متوفر - الموديول لم يُحمّل بشكل صحيح');
                         }
                     }
                     break;
                 case 'settings':
                     if (typeof Settings !== 'undefined' && Settings.load) {
                         Settings.load();
-                    } else {
                         if (!silent) {
-                            Utils.safeWarn('وحدة Settings غير موجودة - جاري انتظار التحميل...');
-                            this.waitForModuleAndLoad('Settings', 'settings', silent);
+                            Utils.safeError('❌ موديول Settings غير متوفر - الموديول لم يُحمّل بشكل صحيح');
                         }
                     }
                     break;
                 case 'safety-budget':
                     if (typeof SafetyBudget !== 'undefined' && SafetyBudget.load) {
                         SafetyBudget.load();
-                    } else {
                         if (!silent) {
-                            Utils.safeWarn('وحدة SafetyBudget غير موجودة - جاري انتظار التحميل...');
-                            this.waitForModuleAndLoad('SafetyBudget', 'safety-budget', silent);
+                            Utils.safeError('❌ موديول SafetyBudget غير متوفر - الموديول لم يُحمّل بشكل صحيح');
                         }
                     }
                     break;
@@ -5076,10 +5036,8 @@ window.UI = {
                         } catch (error) {
                             Utils.safeError('خطأ في استدعاء ActionTrackingRegister.load:', error);
                         }
-                    } else {
                         if (!silent) {
-                            Utils.safeWarn('وحدة ActionTrackingRegister غير موجودة - جاري انتظار التحميل...');
-                            this.waitForModuleAndLoad('ActionTrackingRegister', 'action-tracking', silent);
+                            Utils.safeError('❌ موديول ActionTrackingRegister غير متوفر - الموديول لم يُحمّل بشكل صحيح');
                         }
                     }
                     break;
@@ -5096,10 +5054,8 @@ window.UI = {
                         } catch (error) {
                             Utils.safeError('خطأ في استدعاء SafetyHealthManagement.load:', error);
                         }
-                    } else {
                         if (!silent) {
-                            Utils.safeError('وحدة SafetyHealthManagement غير موجودة - جاري انتظار التحميل...');
-                            this.waitForModuleAndLoad('SafetyHealthManagement', 'safety-health-management', silent);
+                            Utils.safeError('❌ موديول SafetyHealthManagement غير متوفر - الموديول لم يُحمّل بشكل صحيح');
                         }
                     }
                     break;
@@ -5107,10 +5063,8 @@ window.UI = {
                     Utils.safeLog('تحميل مديول اختبار التطبيق في قسم apptester-section');
                     if (typeof AppTester !== 'undefined' && AppTester.load) {
                         AppTester.load();
-                    } else {
                         if (!silent) {
-                            Utils.safeWarn('وحدة AppTester غير موجودة - جاري انتظار التحميل...');
-                            this.waitForModuleAndLoad('AppTester', 'apptester', silent);
+                            Utils.safeError('❌ موديول AppTester غير متوفر - الموديول لم يُحمّل بشكل صحيح');
                         }
                     }
                     break;
@@ -5127,10 +5081,8 @@ window.UI = {
                         } catch (error) {
                             Utils.safeError('خطأ في استدعاء Reports.load:', error);
                         }
-                    } else {
                         if (!silent) {
-                            Utils.safeWarn('وحدة Reports غير موجودة - جاري انتظار التحميل...');
-                            this.waitForModuleAndLoad('Reports', 'reports', silent);
+                            Utils.safeError('❌ موديول Reports غير متوفر - الموديول لم يُحمّل بشكل صحيح');
                         }
                     }
                     break;
@@ -5147,10 +5099,8 @@ window.UI = {
                         } catch (error) {
                             Utils.safeError('خطأ في استدعاء HSE.load:', error);
                         }
-                    } else {
                         if (!silent) {
-                            Utils.safeWarn('وحدة HSE غير موجودة - جاري انتظار التحميل...');
-                            this.waitForModuleAndLoad('HSE', 'hse', silent);
+                            Utils.safeError('❌ موديول HSE غير متوفر - الموديول لم يُحمّل بشكل صحيح');
                         }
                     }
                     break;
@@ -5170,7 +5120,6 @@ window.UI = {
                     } else {
                         if (!silent) {
                             Utils.safeWarn('وحدة RiskMatrix غير موجودة - جاري انتظار التحميل...');
-                            this.waitForModuleAndLoad('RiskMatrix', 'risk-matrix', silent);
                         }
                     }
                     break;
@@ -5191,7 +5140,6 @@ window.UI = {
                     } else {
                         if (!silent) {
                             Utils.safeWarn('وحدة UserAIAssistant غير موجودة - جاري انتظار التحميل...');
-                            this.waitForModuleAndLoad('UserAIAssistant', 'useraiassistant', silent);
                         }
                     }
                     break;
@@ -5208,10 +5156,8 @@ window.UI = {
                         } catch (error) {
                             Utils.safeError('خطأ في استدعاء IssueTracking.load:', error);
                         }
-                    } else {
                         if (!silent) {
-                            Utils.safeWarn('وحدة IssueTracking غير موجودة - جاري انتظار التحميل...');
-                            this.waitForModuleAndLoad('IssueTracking', 'issue-tracking', silent);
+                            Utils.safeError('❌ موديول IssueTracking غير متوفر - الموديول لم يُحمّل بشكل صحيح');
                         }
                     }
                     break;
@@ -5228,10 +5174,8 @@ window.UI = {
                         } catch (error) {
                             Utils.safeError('خطأ في استدعاء ChangeManagement.load:', error);
                         }
-                    } else {
                         if (!silent) {
-                            Utils.safeWarn('وحدة ChangeManagement غير موجودة - جاري انتظار التحميل...');
-                            this.waitForModuleAndLoad('ChangeManagement', 'change-management', silent);
+                            Utils.safeError('❌ موديول ChangeManagement غير متوفر - الموديول لم يُحمّل بشكل صحيح');
                         }
                     }
                     break;
@@ -5291,92 +5235,6 @@ window.UI = {
                 }, 500);
             }
         }
-    },
-
-    /**
-     * انتظار تحميل موديول ثم تحميله
-     */
-    async waitForModuleAndLoad(moduleName, sectionName, silent = false) {
-        // انتظار تحميل الموديول لمدة أقصاها 10 ثوان
-        const maxWait = 10000;
-        const checkInterval = 100;
-        const startTime = Date.now();
-
-        return new Promise((resolve) => {
-            const checkModule = () => {
-                const module = window[moduleName];
-                const elapsed = Date.now() - startTime;
-
-                if (module && typeof module.load === 'function') {
-                    // الموديول محمل - تحميل القسم مباشرة
-                    if (!silent) {
-                        Utils.safeLog(`✅ تم تحميل ${moduleName} - جاري تحميل القسم`);
-                    }
-                    try {
-                        const loadResult = module.load(silent);
-
-                        // إذا كانت Promise، ننتظرها
-                        if (loadResult && typeof loadResult.then === 'function') {
-                            loadResult.then(() => {
-                                // إضافة الأيقونات بعد تحميل الموديول
-                                if (sectionName !== 'dashboard') {
-                                    setTimeout(() => {
-                                        this.ensureNavigationIcons(sectionName);
-                                    }, 300);
-                                    setTimeout(() => {
-                                        this.ensureNavigationIcons(sectionName);
-                                    }, 800);
-                                }
-                            }).catch(() => {
-                                if (!silent) {
-                                    Utils.safeError(`خطأ في تحميل ${moduleName}`);
-                                }
-                            });
-                        } else if (loadResult && typeof loadResult.catch === 'function' && silent) {
-                            loadResult.catch(() => { });
-                        }
-
-                        // إضافة الأيقونات بعد تحميل الموديول (حتى لو لم تكن Promise)
-                        if (sectionName !== 'dashboard') {
-                            setTimeout(() => {
-                                this.ensureNavigationIcons(sectionName);
-                            }, 500);
-                            setTimeout(() => {
-                                this.ensureNavigationIcons(sectionName);
-                            }, 1000);
-                        }
-                    } catch (error) {
-                        if (!silent) {
-                            Utils.safeError(`خطأ في تحميل ${moduleName}:`, error);
-                        }
-                    }
-                    resolve(true);
-                } else if (elapsed < maxWait) {
-                    // الموديول لم يُحمّل بعد - ننتظر
-                    setTimeout(checkModule, checkInterval);
-                } else {
-                    // انتهى الوقت - فشل التحميل
-                    if (!silent) {
-                        Utils.safeError(`⚠️ فشل تحميل ${moduleName} بعد ${maxWait}ms`);
-                        const section = document.getElementById(`${sectionName}-section`);
-                        if (section) {
-                            section.innerHTML = `
-                                <div class="content-card">
-                                    <div class="empty-state">
-                                        <i class="fas fa-exclamation-triangle text-4xl text-yellow-400 mb-4"></i>
-                                        <p class="text-gray-500">فشل تحميل الموديول</p>
-                                        <p class="text-sm text-gray-400 mt-2">يرجى تحديث الصفحة</p>
-                                    </div>
-                                </div>
-                            `;
-                        }
-                    }
-                    resolve(false);
-                }
-            };
-
-            checkModule();
-        });
     },
 
     /**
