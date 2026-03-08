@@ -12065,9 +12065,43 @@
         <!-- تحميل Auth و Dashboard من ملفات منفصلة أولاً -->
         <script src="js/modules/auth.js?v=3" defer></script>
         <script src="js/modules/dashboard.js" defer></script>
-        <!-- تحميل باقي الموديولات من الملفات المقسمة -->
-        <!-- تم تقسيم app-modules.js إلى 31 ملف منفصل لتحسين الأداء والصيانة -->
-        <script src="js/modules/modules-loader.js" defer></script>
+        
+        <!-- تحميل جميع الموديولات مباشرة (بدلاً من modules-loader.js) -->
+        <script src="js/modules/modules/users.js" defer></script>
+        <script src="js/modules/modules/incidents.js" defer></script>
+        <script src="js/modules/modules/nearmiss.js" defer></script>
+        <script src="js/modules/modules/ptw.js" defer></script>
+        <script src="js/modules/modules/training.js" defer></script>
+        <script src="js/modules/modules/reports.js" defer></script>
+        <script src="js/modules/modules/settings.js" defer></script>
+        <script src="js/modules/modules/clinic.js" defer></script>
+        <script src="js/modules/modules/fireequipment.js" defer></script>
+        <script src="js/modules/modules/ppe.js" defer></script>
+        <script src="js/modules/modules/periodicinspections.js" defer></script>
+        <script src="js/modules/modules/contractors.js" defer></script>
+        <script src="js/modules/modules/violations.js" defer></script>
+        <script src="js/modules/modules/employees.js" defer></script>
+        <script src="js/modules/modules/behaviormonitoring.js" defer></script>
+        <script src="js/modules/modules/chemicalsafety.js" defer></script>
+        <script src="js/modules/modules/dailyobservations.js" defer></script>
+        <script src="js/modules/modules/iso.js" defer></script>
+        <script src="js/modules/modules/emergency.js" defer></script>
+        <script src="js/modules/modules/safetybudget.js" defer></script>
+        <script src="js/modules/modules/actiontrackingregister.js" defer></script>
+        <script src="js/modules/modules/hse.js" defer></script>
+        <script src="js/modules/modules/safetyperformancekpis.js" defer></script>
+        <script src="js/modules/modules/sustainability.js" defer></script>
+        <script src="js/modules/modules/riskassessment.js" defer></script>
+        <script src="js/modules/modules/riskmatrix.js" defer></script>
+        <script src="js/modules/modules/legaldocuments.js" defer></script>
+        <script src="js/modules/modules/safetyhealthmanagement.js" defer></script>
+        <script src="js/modules/modules/usertasks.js" defer></script>
+        <script src="js/modules/modules/sopjha.js" defer></script>
+        <script src="js/modules/modules/aiassistant.js" defer></script>
+        <script src="js/modules/modules/useraiassistant.js" defer></script>
+        <script src="js/modules/modules/issuetracking.js" defer></script>
+        <script src="js/modules/modules/changemanagement.js" defer></script>
+        <script src="js/modules/modules/apptester.js" defer></script>
 
         <!-- 5. Events (Event listeners and initialization) -->
         <script src="js/modules/app-events.js" defer></script>
