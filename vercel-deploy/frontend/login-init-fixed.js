@@ -502,56 +502,13 @@ Yasser.diab@icapp.com.eg`;
         return true;
     }
 
-    function setupSyncSettingsButton() {
-        const btn = document.getElementById('sync-settings-btn');
-        if (!btn) {
-            log('⚠️ زر إعداد المزامنة غير موجود');
-            return false;
-        }
-        if (btn.dataset.handlerBound === 'true') {
-            log('ℹ️ زر إعداد المزامنة مفعّل بالفعل');
-            return true;
-        }
-
-        btn.addEventListener('click', function (e) {
-            e.preventDefault();
-            e.stopPropagation();
-            e.stopImmediatePropagation();
-            
-            log('🖱️ تم النقر على زر إعداد المزامنة');
-            
-            try {
-                // استخدام window.LoginSyncSetup مباشرة
-                if (typeof window !== 'undefined' && window.LoginSyncSetup && typeof window.LoginSyncSetup.open === 'function') {
-                    log('✅ فتح نافذة إعداد المزامنة...');
-                    window.LoginSyncSetup.open();
-                } else {
-                    log('❌ LoginSyncSetup غير متاح');
-                    throw new Error('LoginSyncSetup غير متاح بعد. انتظر قليلاً ثم حاول مرة أخرى.');
-                }
-            } catch (err) {
-                console.error('❌ خطأ في فتح نافذة إعداد المزامنة:', err);
-                alert('تعذر فتح نافذة إعداد المزامنة. يرجى تحديث الصفحة.\n\n' + (err?.message || ''));
-            }
-        }, true);
-
-        btn.dataset.handlerBound = 'true';
-        log('✅ تم تفعيل زر إعداد المزامنة');
-        return true;
-    }
-    
     // محاولة التهيئة الفورية
     function tryInit() {
         const passwordOk = setupPasswordToggle();
         const forgotOk = setupForgotPassword();
         const helpOk = setupHelpButton();
-        const syncOk = setupSyncSettingsButton();
-        
-        // زر إعداد المزامنة جديد وقد لا يكون موجوداً في نسخ قديمة
-        const syncBtnExists = !!document.getElementById('sync-settings-btn');
-        const syncReady = syncOk || !syncBtnExists;
 
-        if (passwordOk && forgotOk && helpOk && syncReady) {
+        if (passwordOk && forgotOk && helpOk) {
             log('✅ تم تهيئة جميع أزرار تسجيل الدخول بنجاح');
             return true;
         }
@@ -587,18 +544,6 @@ Yasser.diab@icapp.com.eg`;
         retryCount++;
     }, 1000);
 
-    // التأكد من أن زر إعداد المزامنة يعمل حتى بعد تحميل الصفحة بالكامل
-    window.addEventListener('load', function() {
-        log('📄 تم تحميل الصفحة بالكامل - محاولة تفعيل زر إعداد المزامنة...');
-        setTimeout(function() {
-            const result = setupSyncSettingsButton();
-            if (result) {
-                log('✅ تم تفعيل زر إعداد المزامنة بعد تحميل الصفحة');
-            } else {
-                log('⚠️ فشل تفعيل زر إعداد المزامنة بعد تحميل الصفحة - الزر غير موجود؟');
-            }
-        }, 500);
-    });
 })();
 
 // ===== تهيئة نموذج تسجيل الدخول =====
@@ -715,35 +660,6 @@ Yasser.diab@icapp.com.eg`;
                 }
             }
 
-            // Sync settings button
-            const syncSettingsBtn = newForm.querySelector('#sync-settings-btn');
-            if (syncSettingsBtn) {
-                if (syncSettingsBtn.dataset.handlerBound !== 'true') {
-                    syncSettingsBtn.addEventListener('click', function (e) {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        e.stopImmediatePropagation();
-                        
-                        log('🖱️ تم النقر على زر إعداد المزامنة (من form clone)');
-                        
-                        try {
-                            // استخدام window.LoginSyncSetup مباشرة
-                            if (typeof window !== 'undefined' && window.LoginSyncSetup && typeof window.LoginSyncSetup.open === 'function') {
-                                log('✅ فتح نافذة إعداد المزامنة...');
-                                window.LoginSyncSetup.open();
-                            } else {
-                                log('❌ LoginSyncSetup غير متاح');
-                                throw new Error('LoginSyncSetup غير متاح بعد. انتظر قليلاً ثم حاول مرة أخرى.');
-                            }
-                        } catch (err) {
-                            console.error('❌ خطأ في فتح نافذة إعداد المزامنة:', err);
-                            alert('تعذر فتح نافذة إعداد المزامنة. يرجى تحديث الصفحة.\n\n' + (err?.message || ''));
-                        }
-                    }, true);
-                    syncSettingsBtn.dataset.handlerBound = 'true';
-                    log('✅ تم ربط زر إعداد المزامنة في form clone');
-                }
-            }
         })();
         
         newForm.addEventListener('submit', async function(e) {

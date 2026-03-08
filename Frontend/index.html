@@ -4,6 +4,16 @@
 <head>
     <meta charset="UTF-8">
     <script>
+        (function(){
+            try {
+                var lang = localStorage.getItem('language') || 'ar';
+                var isRTL = lang === 'ar';
+                document.documentElement.dir = isRTL ? 'rtl' : 'ltr';
+                document.documentElement.lang = lang === 'ar' ? 'ar' : 'en';
+            } catch (e) {}
+        })();
+    </script>
+    <script>
         (function(){ try {
             if (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') return;
             function rm(){ var link = document.querySelector('link[rel="manifest"]'); if (link && link.parentNode) link.parentNode.removeChild(link); }
@@ -5578,6 +5588,12 @@
     <div id="login-screen" class="login-screen" role="main" aria-label="شاشة تسجيل الدخول">
         <div class="login-container">
             <div class="login-card" role="article">
+                <!-- Language toggle: AR / EN (before login) -->
+                <div class="login-lang-toggle-wrap">
+                    <button type="button" id="login-language-toggle" class="login-lang-btn" aria-label="تبديل اللغة">
+                        <span id="login-lang-current">AR</span><span class="login-lang-sep">|</span><span id="login-lang-other">EN</span>
+                    </button>
+                </div>
                 <!-- Logo -->
                 <header class="text-center mb-8">
                     <div class="logo-wrapper mb-4" aria-hidden="true">
@@ -5598,7 +5614,7 @@
                     <div>
                         <label for="username" class="block text-sm font-semibold text-gray-700 mb-2">
                             <i class="fas fa-envelope ml-2"></i>
-                            البريد الإلكتروني
+                            <span id="login-label-email-text">البريد الإلكتروني</span>
                         </label>
                         <input type="email" id="username" name="username" required class="form-input"
                             placeholder="example@americana.com" autocomplete="username">
@@ -5607,7 +5623,7 @@
                     <div>
                         <label for="password" class="block text-sm font-semibold text-gray-700 mb-2">
                             <i class="fas fa-lock ml-2"></i>
-                            كلمة المرور
+                            <span id="login-label-password-text">كلمة المرور</span>
                         </label>
                         <div class="relative">
                             <input type="password" id="password" name="password" required class="form-input"
@@ -5623,26 +5639,20 @@
                         <label class="flex items-center">
                             <input type="checkbox" name="remember" id="remember-me"
                                 class="rounded border-gray-300 text-blue-600" aria-label="تذكرني">
-                            <span class="mr-2 text-sm text-gray-700">تذكرني</span>
+                            <span id="login-remember-text" class="mr-2 text-sm text-gray-700">تذكرني</span>
                         </label>
                         <a href="#" id="forgot-password-link" class="text-sm text-blue-600 hover:text-blue-800"
-                            aria-label="نسيت كلمة المرور">نسيت كلمة المرور؟</a>
+                            aria-label="نسيت كلمة المرور"><span id="login-forgot-text">نسيت كلمة المرور؟</span></a>
                     </div>
 
                     <button type="submit" class="btn-primary w-full" aria-label="تسجيل الدخول">
                         <i class="fas fa-sign-in-alt ml-2" aria-hidden="true"></i>
-                        تسجيل الدخول
+                        <span id="login-submit-text">تسجيل الدخول</span>
                     </button>
 
                     <button type="button" id="help-btn" class="btn-secondary w-full mt-3" aria-label="مساعدة">
                         <i class="fas fa-question-circle ml-2" aria-hidden="true"></i>
-                        مساعدة / Help
-                    </button>
-
-                    <button type="button" id="sync-settings-btn" class="btn-secondary w-full mt-3"
-                        aria-label="إعداد المزامنة">
-                        <i class="fas fa-sync-alt ml-2" aria-hidden="true"></i>
-                        إعداد المزامنة
+                        <span id="login-help-text">مساعدة / Help</span>
                     </button>
 
                     <div id="login-error-contact" class="login-error-contact" style="display: none;">
@@ -5658,24 +5668,135 @@
                 <footer class="login-footer">
                     <div class="login-footer-content">
                         <div class="login-footer-row">
-                            <span>© Yasser Diab — كل الحقوق محفوظة 2025</span>
+                            <span id="login-footer-copyright">© Yasser Diab — كل الحقوق محفوظة 2025</span>
                             <span class="login-footer-separator">|</span>
                             <span class="login-footer-login-count">
                                 <span>👥</span>
-                                <span>عدد تسجيل الدخول للمستخدمين:</span>
+                                <span id="login-footer-count-label">عدد تسجيل الدخول للمستخدمين:</span>
                                 <span id="login-count" class="login-count-number">0</span>
                             </span>
                         </div>
                         <div class="login-footer-row">
-                            <span class="login-footer-trial-badge">نسخة تجريبية</span>
+                            <span id="login-footer-trial" class="login-footer-trial-badge">نسخة تجريبية</span>
                             <span class="login-footer-separator">|</span>
-                            <a href="#" id="privacy-policy-link" class="login-footer-link">سياسة الخصوصية</a>
+                            <a href="#" id="privacy-policy-link" class="login-footer-link"><span id="login-footer-privacy">سياسة الخصوصية</span></a>
                         </div>
                     </div>
                 </footer>
             </div>
         </div>
     </div>
+
+    <!-- Login screen language (AR/EN) and RTL/LTR - apply before any other script -->
+    <script>
+    (function() {
+        var loginTranslations = {
+            ar: {
+                loginScreenAria: 'شاشة تسجيل الدخول',
+                title: 'نظام إدارة السلامة والصحة المهنية',
+                labelEmail: 'البريد الإلكتروني',
+                labelPassword: 'كلمة المرور',
+                placeholderEmail: 'example@americana.com',
+                placeholderPassword: '••••••••',
+                passwordToggleAria: 'إظهار/إخفاء كلمة المرور',
+                remember: 'تذكرني',
+                rememberAria: 'تذكرني',
+                forgot: 'نسيت كلمة المرور؟',
+                forgotAria: 'نسيت كلمة المرور',
+                submit: 'تسجيل الدخول',
+                submitAria: 'تسجيل الدخول',
+                help: 'مساعدة / Help',
+                helpAria: 'مساعدة',
+                footerCopyright: '© Yasser Diab — كل الحقوق محفوظة 2025',
+                footerCountLabel: 'عدد تسجيل الدخول للمستخدمين:',
+                footerTrial: 'نسخة تجريبية',
+                footerPrivacy: 'سياسة الخصوصية',
+                langToggleAria: 'تبديل اللغة',
+                langCurrent: 'AR',
+                langOther: 'EN'
+            },
+            en: {
+                loginScreenAria: 'Login screen',
+                title: 'Occupational Health and Safety Management System',
+                labelEmail: 'Email',
+                labelPassword: 'Password',
+                placeholderEmail: 'example@company.com',
+                placeholderPassword: '••••••••',
+                passwordToggleAria: 'Show/hide password',
+                remember: 'Remember me',
+                rememberAria: 'Remember me',
+                forgot: 'Forgot password?',
+                forgotAria: 'Forgot password',
+                submit: 'Log in',
+                submitAria: 'Log in',
+                help: 'Help',
+                helpAria: 'Help',
+                footerCopyright: '© Yasser Diab — All rights reserved 2025',
+                footerCountLabel: 'User logins count:',
+                footerTrial: 'Trial version',
+                footerPrivacy: 'Privacy Policy',
+                langToggleAria: 'Switch language',
+                langCurrent: 'EN',
+                langOther: 'AR'
+            }
+        };
+        function getLoginLang() {
+            try { return localStorage.getItem('language') || 'ar'; } catch (e) { return 'ar'; }
+        }
+        function applyLoginLanguage(lang) {
+            var t = loginTranslations[lang] || loginTranslations.ar;
+            var isRTL = lang === 'ar';
+            document.documentElement.dir = isRTL ? 'rtl' : 'ltr';
+            document.documentElement.lang = lang === 'ar' ? 'ar' : 'en';
+            if (document.body) document.body.dir = isRTL ? 'rtl' : 'ltr';
+
+            var loginScreen = document.getElementById('login-screen');
+            if (loginScreen) loginScreen.setAttribute('aria-label', t.loginScreenAria);
+
+            var byId = function(id) { return document.getElementById(id); };
+            if (byId('login-title')) byId('login-title').textContent = t.title;
+            if (byId('login-label-email-text')) byId('login-label-email-text').textContent = t.labelEmail;
+            if (byId('login-label-password-text')) byId('login-label-password-text').textContent = t.labelPassword;
+            var un = byId('username'); if (un) un.placeholder = t.placeholderEmail;
+            var pw = byId('password'); if (pw) pw.placeholder = t.placeholderPassword;
+            var pwdBtn = byId('password-toggle-btn'); if (pwdBtn) { pwdBtn.setAttribute('aria-label', t.passwordToggleAria); pwdBtn.setAttribute('title', t.passwordToggleAria); }
+            var rem = byId('remember-me'); if (rem) rem.setAttribute('aria-label', t.rememberAria);
+            if (byId('login-remember-text')) byId('login-remember-text').textContent = t.remember;
+            var forgotLink = byId('forgot-password-link'); if (forgotLink) forgotLink.setAttribute('aria-label', t.forgotAria);
+            if (byId('login-forgot-text')) byId('login-forgot-text').textContent = t.forgot;
+            var submitBtn = byId('login-submit-text'); if (submitBtn) submitBtn.textContent = t.submit;
+            var submitB = document.querySelector('#login-form button[type="submit"]'); if (submitB) submitB.setAttribute('aria-label', t.submitAria);
+            var helpB = byId('help-btn'); if (helpB) helpB.setAttribute('aria-label', t.helpAria);
+            if (byId('login-help-text')) byId('login-help-text').textContent = t.help;
+            if (byId('login-footer-copyright')) byId('login-footer-copyright').textContent = t.footerCopyright;
+            if (byId('login-footer-count-label')) byId('login-footer-count-label').textContent = t.footerCountLabel;
+            if (byId('login-footer-trial')) byId('login-footer-trial').textContent = t.footerTrial;
+            if (byId('login-footer-privacy')) byId('login-footer-privacy').textContent = t.footerPrivacy;
+            if (byId('login-language-toggle')) byId('login-language-toggle').setAttribute('aria-label', t.langToggleAria);
+            if (byId('login-lang-current')) byId('login-lang-current').textContent = t.langCurrent;
+            if (byId('login-lang-other')) byId('login-lang-other').textContent = t.langOther;
+        }
+        function initLoginLanguage() {
+            var lang = getLoginLang();
+            applyLoginLanguage(lang);
+            var btn = document.getElementById('login-language-toggle');
+            if (btn && !btn.dataset.loginLangBound) {
+                btn.dataset.loginLangBound = 'true';
+                btn.addEventListener('click', function() {
+                    var next = getLoginLang() === 'ar' ? 'en' : 'ar';
+                    try { localStorage.setItem('language', next); } catch (e) {}
+                    if (typeof window.AppState !== 'undefined') window.AppState.currentLanguage = next;
+                    applyLoginLanguage(next);
+                });
+            }
+        }
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initLoginLanguage);
+        } else {
+            initLoginLanguage();
+        }
+    })();
+    </script>
 
     <!-- عند وجود جلسة محفوظة: إخفاء شاشة الدخول وإنشاء شاشة "جاري التحميل" فوراً (تفادي الشاشة البيضاء عند إعادة التحميل) -->
     <script>

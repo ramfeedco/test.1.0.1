@@ -122,12 +122,13 @@ window.UI = {
             rememberCheckbox.checked = false;
         }
 
-        // إعادة تعيين حالة زر تسجيل الدخول
+        // إعادة تعيين حالة زر تسجيل الدخول (مع مراعاة اللغة المحفوظة)
         if (loginForm) {
             const submitBtn = loginForm.querySelector('button[type="submit"]');
             if (submitBtn) {
                 submitBtn.disabled = false;
-                submitBtn.innerHTML = '<i class="fas fa-sign-in-alt ml-2" aria-hidden="true"></i> تسجيل الدخول';
+                const loginText = (localStorage.getItem('language') === 'en') ? 'Log in' : 'تسجيل الدخول';
+                submitBtn.innerHTML = '<i class="fas fa-sign-in-alt ml-2" aria-hidden="true"></i><span id="login-submit-text">' + loginText + '</span>';
             }
         }
 
