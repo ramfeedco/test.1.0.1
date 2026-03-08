@@ -800,10 +800,22 @@ Yasser.diab@icapp.com.eg`;
         // ⚠️ مهم: إعادة تفعيل زر تبديل اللغة بعد استبدال النموذج
         setupLanguageToggle();
         
-        newForm.addEventListener('submit', async function(e) {
+        // إضافة مستمع إضافي في مرحلة ال capture لضمان منع الإرسال
+        newForm.addEventListener('submit', function(e) {
+            console.log('🔥 Submit event captured in capture phase!');
             e.preventDefault();
             e.stopPropagation();
             e.stopImmediatePropagation();
+            e.returnValue = false;
+            return false;
+        }, true);
+        
+        newForm.addEventListener('submit', async function(e) {
+            console.log('🔥 Submit event captured!');
+            e.preventDefault();
+            e.stopPropagation();
+            e.stopImmediatePropagation();
+            e.returnValue = false;
             
             log('📝 محاولة تسجيل الدخول...');
             
