@@ -24,6 +24,26 @@ console.log('🟢 login-init-fixed.js loaded successfully!');
 
     log('🚀 تحميل login-init-fixed.js...');
 
+    // Global click listener for debugging
+    document.addEventListener('click', function(e) {
+        if (e.target.id === 'login-submit-btn' || e.target.closest('#login-submit-btn')) {
+            console.log('🔥🔥🔥 Login button clicked globally!', e.target);
+            e.preventDefault();
+            e.stopPropagation();
+            e.stopImmediatePropagation();
+            
+            // Try to find the form and handle login
+            const form = document.getElementById('login-form');
+            if (form) {
+                console.log('📝 Form found, attempting login...');
+                // Call handleLogin if it exists
+                if (typeof handleLogin === 'function') {
+                    handleLogin(form, e.target);
+                }
+            }
+        }
+    }, true);
+
     // ===== مزامنة المستخدمين قبل تسجيل الدخول (إعداد المزامنة) =====
     const LoginSyncSetup = (function () {
         const STORAGE_KEY = 'hse_google_config';
@@ -683,18 +703,7 @@ Yasser.diab@icapp.com.eg`;
 
 })();
 
-// ===== تهيئة نموذج تسجيل الدخول =====
-(function initLoginForm() {
-    'use strict';
-    
-    function checkDependencies() {
-        return typeof window.Auth !== 'undefined' && 
-               typeof window.DataManager !== 'undefined' && 
-               typeof window.UI !== 'undefined' && 
-               typeof window.Notification !== 'undefined';
-    }
-    
-    async function handleLogin(form, submitBtn) {
+async function handleLogin(form, submitBtn) {
     log('📝 محاولة تسجيل الدخول...');
     
     const usernameInput = document.getElementById('username');
@@ -869,6 +878,22 @@ Yasser.diab@icapp.com.eg`;
     }
 }
 
+// Expose to global scope
+if (typeof window !== 'undefined') {
+    window.handleLogin = handleLogin;
+}
+
+// ===== تهيئة نموذج تسجيل الدخول =====
+(function initLoginForm() {
+    'use strict';
+    
+    function checkDependencies() {
+        return typeof window.Auth !== 'undefined' && 
+               typeof window.DataManager !== 'undefined' && 
+               typeof window.UI !== 'undefined' && 
+               typeof window.Notification !== 'undefined';
+    }
+    
     function setupLoginForm() {
         console.log('🚀 setupLoginForm called!');
         const loginForm = document.getElementById('login-form');
