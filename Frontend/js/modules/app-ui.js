@@ -4573,6 +4573,8 @@ window.UI = {
             silent = true;
         }
 
+        console.log('📢 loadSectionData called for:', sectionName, 'silent:', silent);
+
         if (!silent) {
             Utils.safeLog('تحميل بيانات القسم:', sectionName);
         }
