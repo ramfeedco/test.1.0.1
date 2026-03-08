@@ -1,5 +1,13 @@
 console.log('🟢 login-init-fixed.js loaded successfully!');
 
+// IMMEDIATE TEST: Add global click listener right away
+document.addEventListener('click', function(e) {
+    if (e.target.tagName === 'BUTTON' || e.target.closest('button')) {
+        const btn = e.target.tagName === 'BUTTON' ? e.target : e.target.closest('button');
+        console.log('🖱️ GLOBAL BUTTON CLICK:', btn.id || 'no-id', btn.textContent?.trim()?.substring(0, 30));
+    }
+}, true);
+
 // ===== تهيئة مباشرة لشاشة تسجيل الدخول - نسخة محسنة ومحلولة =====
 
 // عزل هذا الملف بالكامل لتجنب تلويث الـ global scope (خصوصاً اسم log)
@@ -26,6 +34,12 @@ console.log('🟢 login-init-fixed.js loaded successfully!');
 
     // Global click listener for debugging
     document.addEventListener('click', function(e) {
+        // Debug ALL clicks to see what's being clicked
+        if (e.target.tagName === 'BUTTON' || e.target.closest('button')) {
+            const btn = e.target.tagName === 'BUTTON' ? e.target : e.target.closest('button');
+            console.log('🖱️ Button clicked:', btn.id || 'no-id', btn.textContent?.trim()?.substring(0, 30));
+        }
+        
         if (e.target.id === 'login-submit-btn' || e.target.closest('#login-submit-btn')) {
             console.log('🔥🔥🔥 Login button clicked globally!', e.target);
             e.preventDefault();
