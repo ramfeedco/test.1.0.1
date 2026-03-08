@@ -135,6 +135,14 @@ const Settings = {
     },
 
     async load() {
+        // إضافة مستمع لتغيير اللغة
+        if (!this._languageChangeListenerAdded) {
+            document.addEventListener('language-changed', () => {
+                this.load();
+            });
+            this._languageChangeListenerAdded = true;
+        }
+
         const section = document.getElementById('settings-section');
         if (!section) return;
 

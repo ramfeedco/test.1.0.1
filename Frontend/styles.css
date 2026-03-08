@@ -1025,7 +1025,7 @@ body.app-active {
     overflow-y: auto;
     overflow-x: hidden;
     box-shadow: 4px 0 20px rgba(0, 56, 101, 0.3);
-    z-index: 1000;
+    z-index: 50;
     right: 0;
     top: 0;
     transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), background 0.3s ease;
@@ -4011,7 +4011,7 @@ body.app-active {
         width: 280px;
         max-width: 85vw;
         transform: translateX(100%);
-        z-index: 1000;
+        z-index: 50;
     }
 
     .sidebar.open {
@@ -4077,7 +4077,7 @@ body.app-active {
         width: 280px;
         max-width: 80vw;
         transform: translateX(100%);
-        z-index: 1000;
+        z-index: 50;
     }
 
     .sidebar.open {
@@ -4255,7 +4255,7 @@ body.app-active {
         max-width: 280px;
         min-width: 0;
         transform: translateX(100%);
-        z-index: 1000;
+        z-index: 50;
         box-shadow: -4px 0 20px rgba(0, 0, 0, 0.5);
         overflow-y: auto;
         overflow-x: hidden;
@@ -13621,7 +13621,7 @@ body {
         height: 100vh;
         height: 100dvh;
         height: -webkit-fill-available;
-        z-index: 1000;
+        z-index: 50;
     }
 
     .main-content {

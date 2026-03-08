@@ -216,6 +216,14 @@ const Employees = {
     },
 
     async load() {
+        // إضافة مستمع لتغيير اللغة
+        if (!this._languageChangeListenerAdded) {
+            document.addEventListener('language-changed', () => {
+                this.load();
+            });
+            this._languageChangeListenerAdded = true;
+        }
+
         // التحقق من وجود التبعيات المطلوبة
         if (typeof Utils === 'undefined') {
             console.error('Utils غير متوفر!');
