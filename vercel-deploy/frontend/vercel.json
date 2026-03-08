@@ -51,11 +51,5 @@
         { "key": "Access-Control-Allow-Headers", "value": "Content-Type, Authorization, X-CSRF-Token" }
       ]
     }
-  ],
-  "rewrites": [
-    { "source": "/js/(.*)", "destination": "/js/$1" },
-    { "source": "/css/(.*)", "destination": "/css/$1" },
-    { "source": "/(.*\\.(js|css|png|jpg|jpeg|gif|svg|ico|woff|woff2|ttf|eot|json))", "destination": "/$1" },
-    { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
