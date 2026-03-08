@@ -7965,7 +7965,82 @@ window.UI = {
 
         langToggle.dataset.languageBound = 'true';
 
+        // تهيئة تبديل اللغة في شاشة تسجيل الدخول أيضاً
+        this.initLoginLanguageToggle();
+
         Utils.safeLog('✅ تم تهيئة زر اللغة');
+    },
+
+    /**
+     * تهيئة تبديل اللغة في شاشة تسجيل الدخول
+     */
+    initLoginLanguageToggle() {
+        const loginLangToggle = document.getElementById('login-language-toggle-btn');
+        const loginLangDropdown = document.getElementById('login-language-dropdown');
+        
+        if (!loginLangToggle || !loginLangDropdown) {
+            return; // لا نعرض تحذير إذا كنا لسنا في شاشة تسجيل الدخول
+        }
+
+        // تحميل اللغة الحالية
+        const currentLang = localStorage.getItem('language') || 'ar';
+        const currentLangText = document.getElementById('current-lang-text');
+        if (currentLangText) {
+            currentLangText.textContent = currentLang === 'ar' ? 'العربية' : 'English';
+        }
+
+        // منع تكرار الربط
+        if (loginLangToggle.dataset.loginLangBound === 'true') {
+            return;
+        }
+
+        // تبديل القائمة المنسدلة
+        loginLangToggle.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            const isHidden = loginLangDropdown.classList.contains('hidden');
+            if (isHidden) {
+                loginLangDropdown.classList.remove('hidden');
+                loginLangDropdown.classList.add('show');
+                loginLangToggle.classList.add('active');
+            } else {
+                loginLangDropdown.classList.add('hidden');
+                loginLangDropdown.classList.remove('show');
+                loginLangToggle.classList.remove('active');
+            }
+        });
+
+        // معالجة اختيار اللغة
+        const langButtons = loginLangDropdown.querySelectorAll('[data-lang]');
+        langButtons.forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                const selectedLang = btn.getAttribute('data-lang');
+                if (selectedLang !== currentLang) {
+                    this.setLanguage(selectedLang);
+                    
+                    // إغلاق القائمة
+                    loginLangDropdown.classList.add('hidden');
+                    loginLangDropdown.classList.remove('show');
+                    loginLangToggle.classList.remove('active');
+                }
+            });
+        });
+
+        // إغلاق القائمة عند النقر خارجها
+        document.addEventListener('click', (e) => {
+            if (!loginLangToggle.contains(e.target) && !loginLangDropdown.contains(e.target)) {
+                loginLangDropdown.classList.add('hidden');
+                loginLangDropdown.classList.remove('show');
+                loginLangToggle.classList.remove('active');
+            }
+        });
+
+        loginLangToggle.dataset.loginLangBound = 'true';
+        Utils.safeLog('✅ تم تهيئة تبديل اللغة في شاشة تسجيل الدخول');
     },
 
     /**
@@ -8124,7 +8199,7 @@ window.UI = {
             }
         `;
 
-        // تحديث نص الزر
+        // تحديث نص زر اللغة في التطبيق الرئيسي
         const langText = document.getElementById('current-lang-text');
         if (langText) {
             langText.textContent = lang === 'ar' ? 'العربية' : 'English';
@@ -8278,6 +8353,9 @@ window.UI = {
             }
         });
 
+        // تحديث نصوص تسجيل الدخول إذا كنا في شاشة الدخول
+        this.updateLoginScreenTexts(lang);
+
         // تحديث aria-label للـ navigation
         const navElement = document.querySelector('nav.navigation');
         if (navElement) {
@@ -8323,6 +8401,9 @@ window.UI = {
             }
         } catch (e) { /* تجاهل */ }
 
+        // إصلاحات إضافية للقائمة الجانبية في اللغة الإنجليزية
+        this.fixSidebarForLanguage(lang, isRTL);
+
         // عرض الإشعار فقط إذا لم تكن هذه تهيئة أولية وكانت الواجهة جاهزة
         if (!isInitialLoad) {
             try {
@@ -8337,6 +8418,279 @@ window.UI = {
                 Utils.safeWarn('⚠️ خطأ في عرض إشعار تغيير اللغة:', error);
             }
         }
+    },
+
+    /**
+     * تحديث نصوص شاشة تسجيل الدخول
+     */
+    updateLoginScreenTexts(lang) {
+        const loginTexts = {
+            ar: {
+                'login-email-text': 'البريد الإلكتروني',
+                'login-password-text': 'كلمة المرور',
+                'login-submit-text': 'تسجيل الدخول',
+                'login-help-text': 'مساعدة / Help',
+                'login-forgot-text': 'نسيت كلمة المرور؟',
+                'current-lang-text': 'العربية'
+            },
+            en: {
+                'login-email-text': 'Email',
+                'login-password-text': 'Password',
+                'login-submit-text': 'Log in',
+                'login-help-text': 'Help',
+                'login-forgot-text': 'Forgot password?',
+                'current-lang-text': 'English'
+            }
+        };
+
+        const texts = loginTexts[lang];
+        if (!texts) return;
+
+        Object.entries(texts).forEach(([id, text]) => {
+            const element = document.getElementById(id);
+            if (element) {
+                element.textContent = text;
+            }
+        });
+
+        // تحديث عناصر data-i18n في شاشة تسجيل الدخول
+        const loginI18nElements = document.querySelectorAll('#login-form [data-i18n]');
+        loginI18nElements.forEach(element => {
+            const key = element.getAttribute('data-i18n');
+            if (texts[key]) {
+                element.textContent = texts[key];
+            }
+        });
+    },
+
+    /**
+     * إصلاحات خاصة بالقائمة الجانبية عند تغيير اللغة
+     */
+    fixSidebarForLanguage(lang, isRTL) {
+        const sidebar = document.querySelector('.sidebar');
+        if (!sidebar) return;
+
+        // إصلاحات خاصة باللغة الإنجليزية
+        if (!isRTL) {
+            // تحديث موضع القائمة الجانبية
+            sidebar.style.position = 'fixed';
+            sidebar.style.top = '0';
+            sidebar.style.left = '0';
+            sidebar.style.right = 'auto';
+            sidebar.style.width = 'var(--sidebar-width, 280px)';
+            sidebar.style.height = '100vh';
+            sidebar.style.zIndex = '1000';
+            sidebar.style.backgroundColor = '#1e293b';
+            sidebar.style.borderRight = '3px solid #FFC72C';
+            sidebar.style.borderLeft = 'none';
+            sidebar.style.boxShadow = '2px 0 10px rgba(0,0,0,0.1)';
+
+            // تحديث اتجاه القائمة
+            sidebar.dir = 'ltr';
+
+            // إصلاح عناصر القائمة
+            const navItems = sidebar.querySelectorAll('.nav-item');
+            navItems.forEach(item => {
+                item.style.display = 'flex';
+                item.style.alignItems = 'center';
+                item.style.width = '100%';
+                item.style.padding = isRTL ? '12px 16px 12px 12px' : '12px 12px 12px 16px';
+                item.style.margin = '4px 8px';
+                item.style.borderRadius = '8px';
+                item.style.color = '#e2e8f0';
+                item.style.textDecoration = 'none';
+                item.style.transition = 'all 0.3s ease';
+                item.style.cursor = 'pointer';
+                item.style.borderLeft = '4px solid transparent';
+                item.style.borderRight = 'none';
+                
+                // إصلاح الأيقونات والنصوص
+                const icon = item.querySelector('i');
+                const text = item.querySelector('span');
+                
+                if (icon) {
+                    icon.style.fontSize = '18px';
+                    icon.style.width = '24px';
+                    icon.style.textAlign = 'center';
+                    icon.style.marginRight = '12px';
+                    icon.style.marginLeft = '0';
+                    icon.style.flexShrink = '0';
+                }
+                
+                if (text) {
+                    text.style.fontSize = '14px';
+                    text.style.fontWeight = '500';
+                    text.style.textAlign = 'left';
+                    text.style.flex = '1';
+                    text.style.whiteSpace = 'nowrap';
+                    text.style.overflow = 'hidden';
+                    text.style.textOverflow = 'ellipsis';
+                }
+                
+                // تأثير hover
+                item.addEventListener('mouseenter', () => {
+                    item.style.backgroundColor = '#334155';
+                    item.style.borderLeftColor = '#FFC72C';
+                    item.style.transform = 'translateX(3px)';
+                });
+                
+                item.addEventListener('mouseleave', () => {
+                    if (!item.classList.contains('active')) {
+                        item.style.backgroundColor = 'transparent';
+                        item.style.borderLeftColor = 'transparent';
+                        item.style.transform = 'translateX(0)';
+                    }
+                });
+                
+                // العنصر النشط
+                if (item.classList.contains('active')) {
+                    item.style.backgroundColor = '#334155';
+                    item.style.borderLeftColor = '#FFC72C';
+                }
+            });
+
+            // إصلاح رأس القائمة
+            const sidebarHeader = sidebar.querySelector('.sidebar-header');
+            if (sidebarHeader) {
+                sidebarHeader.style.padding = '20px 16px';
+                sidebarHeader.style.borderBottom = '1px solid #334155';
+                sidebarHeader.style.textAlign = 'left';
+            }
+
+            // إصلاح شعار القائمة
+            const logo = sidebarHeader?.querySelector('.logo') || sidebar.querySelector('.logo');
+            if (logo) {
+                logo.style.fontSize = '20px';
+                logo.style.fontWeight = 'bold';
+                logo.style.color = '#f8fafc';
+                logo.style.textAlign = 'left';
+                logo.style.marginBottom = '8px';
+            }
+
+            // تحديث مساحة المحتوى الرئيسي
+            const appShell = document.querySelector('.app-shell');
+            if (appShell) {
+                appShell.style.marginLeft = 'var(--sidebar-width, 280px)';
+                appShell.style.marginRight = '0';
+                appShell.style.transition = 'margin-left 0.3s ease';
+            }
+
+            // إضافة CSS ديناميكي للإصلاحات
+            const styleId = 'sidebar-english-fix';
+            let styleElement = document.getElementById(styleId);
+            if (!styleElement) {
+                styleElement = document.createElement('style');
+                styleElement.id = styleId;
+                document.head.appendChild(styleElement);
+            }
+            
+            styleElement.textContent = `
+                [dir="ltr"] .sidebar {
+                    position: fixed !important;
+                    top: 0 !important;
+                    left: 0 !important;
+                    right: auto !important;
+                    width: var(--sidebar-width, 280px) !important;
+                    height: 100vh !important;
+                    z-index: 1000 !important;
+                    background-color: #1e293b !important;
+                    border-right: 3px solid #FFC72C !important;
+                    border-left: none !important;
+                    box-shadow: 2px 0 10px rgba(0,0,0,0.1) !important;
+                }
+                
+                [dir="ltr"] .sidebar .nav-item {
+                    display: flex !important;
+                    align-items: center !important;
+                    width: 100% !important;
+                    padding: 12px 12px 12px 16px !important;
+                    margin: 4px 8px !important;
+                    border-radius: 8px !important;
+                    color: #e2e8f0 !important;
+                    text-decoration: none !important;
+                    transition: all 0.3s ease !important;
+                    cursor: pointer !important;
+                    border-left: 4px solid transparent !important;
+                    border-right: none !important;
+                    flex-direction: row !important;
+                    justify-content: flex-start !important;
+                }
+                
+                [dir="ltr"] .sidebar .nav-item:hover {
+                    background-color: #334155 !important;
+                    border-left-color: #FFC72C !important;
+                    transform: translateX(3px) !important;
+                }
+                
+                [dir="ltr"] .sidebar .nav-item.active {
+                    background-color: #334155 !important;
+                    border-left-color: #FFC72C !important;
+                }
+                
+                [dir="ltr"] .sidebar .nav-item i {
+                    font-size: 18px !important;
+                    width: 24px !important;
+                    text-align: center !important;
+                    margin-right: 12px !important;
+                    margin-left: 0 !important;
+                    flex-shrink: 0 !important;
+                }
+                
+                [dir="ltr"] .sidebar .nav-item span {
+                    font-size: 14px !important;
+                    font-weight: 500 !important;
+                    text-align: left !important;
+                    flex: 1 !important;
+                    white-space: nowrap !important;
+                    overflow: hidden !important;
+                    text-overflow: ellipsis !important;
+                }
+                
+                [dir="ltr"] .app-shell {
+                    margin-left: var(--sidebar-width, 280px) !important;
+                    margin-right: 0 !important;
+                    transition: margin-left 0.3s ease !important;
+                }
+                
+                @media (max-width: 768px) {
+                    [dir="ltr"] .sidebar {
+                        transform: translateX(-100%) !important;
+                    }
+                    
+                    [dir="ltr"] .sidebar.open {
+                        transform: translateX(0) !important;
+                    }
+                    
+                    [dir="ltr"] .app-shell {
+                        margin-left: 0 !important;
+                    }
+                }
+            `;
+
+        } else {
+            // إصلاحات للغة العربية (استعادة الحالة الأصلية)
+            sidebar.style.position = 'fixed';
+            sidebar.style.top = '0';
+            sidebar.style.right = '0';
+            sidebar.style.left = 'auto';
+            sidebar.style.width = 'var(--sidebar-width, 280px)';
+            sidebar.style.height = '100vh';
+            sidebar.style.zIndex = '1000';
+            sidebar.style.backgroundColor = '#1e293b';
+            sidebar.style.borderLeft = '3px solid #FFC72C';
+            sidebar.style.borderRight = 'none';
+            sidebar.style.boxShadow = '-2px 0 10px rgba(0,0,0,0.1)';
+            sidebar.dir = 'rtl';
+
+            const appShell = document.querySelector('.app-shell');
+            if (appShell) {
+                appShell.style.marginRight = 'var(--sidebar-width, 280px)';
+                appShell.style.marginLeft = '0';
+                appShell.style.transition = 'margin-right 0.3s ease';
+            }
+        }
+
+        Utils.safeLog(`✅ تم إصلاح القائمة الجانبية للغة: ${lang}`);
     },
 
     /**
