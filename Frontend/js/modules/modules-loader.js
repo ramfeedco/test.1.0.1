@@ -5,6 +5,11 @@
  * هذا الملف يحل محل app-modules.js بعد التقسيم
  */
 
+// 🔥 IMMEDIATE DEBUG - Log that this file is executing
+console.log('🔥🔥🔥 modules-loader.js IS EXECUTING NOW!');
+console.log('🔥 Document readyState:', document.readyState);
+console.log('🔥 Current time:', new Date().toISOString());
+
 // قائمة الموديولات المطلوب تحميلها (32 موديول)
 const MODULES_TO_LOAD = [
     'users',
@@ -311,8 +316,39 @@ async function loadAllModules() {
 }
 
 // تحميل الموديولات عند جاهزية DOM
+console.log('🔥 Setting up module loading...');
+console.log('🔥 Document readyState:', document.readyState);
+
+// Force immediate execution - don't wait for DOMContentLoaded
+(async function immediateLoad() {
+    console.log('🔥 IMMEDIATE LOAD FUNCTION EXECUTING');
+    
+    // Wait a tiny bit for Utils to be available
+    let waitCount = 0;
+    while (typeof Utils === 'undefined' && waitCount < 50) {
+        await new Promise(resolve => setTimeout(resolve, 100));
+        waitCount++;
+    }
+    
+    if (typeof Utils === 'undefined') {
+        console.error('❌ Utils not available after 5 seconds - loading anyway');
+    } else {
+        console.log('✅ Utils is available');
+    }
+    
+    // Start loading immediately
+    console.log('🔥 Starting loadAllModules NOW');
+    loadAllModules();
+})();
+
+// Also set up the normal DOMContentLoaded listener as backup
 if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', loadAllModules);
+    console.log('🔥 Document still loading - adding DOMContentLoaded listener');
+    document.addEventListener('DOMContentLoaded', () => {
+        console.log('🔥 DOMContentLoaded fired - calling loadAllModules');
+        loadAllModules();
+    });
 } else {
+    console.log('🔥 Document already loaded - calling loadAllModules immediately');
     loadAllModules();
 }
