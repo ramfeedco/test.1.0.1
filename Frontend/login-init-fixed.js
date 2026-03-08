@@ -1,3 +1,5 @@
+console.log('🟢 login-init-fixed.js loaded successfully!');
+
 // ===== تهيئة مباشرة لشاشة تسجيل الدخول - نسخة محسنة ومحلولة =====
 
 // عزل هذا الملف بالكامل لتجنب تلويث الـ global scope (خصوصاً اسم log)
