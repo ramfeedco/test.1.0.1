@@ -7,7 +7,7 @@ const HSE = {
     currentView: 'dashboard', // dashboard, audits, non-conformities, corrective-actions, objectives, risk-assessments
     currentTab: 'dashboard',
 
-    async load() {
+    async load() {`n        // Add language change listener`n        if (!this._languageChangeListenerAdded) {`n            document.addEventListener('language-changed', () => {`n                this.load();`n            });`n            this._languageChangeListenerAdded = true;`n        }`n
         // محاولة البحث عن القسم الصحيح
         let section = document.getElementById('hse-section');
         if (!section) {

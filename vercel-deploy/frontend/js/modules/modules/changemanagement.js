@@ -26,7 +26,7 @@ const ChangeManagement = {
     /**
      * تحميل الموديول — عرض الواجهة فوراً ثم جلب البيانات بدون تعليق
      */
-    load() {
+    load() {`n        // Add language change listener`n        if (!this._languageChangeListenerAdded) {`n            document.addEventListener('language-changed', () => {`n                this.load();`n            });`n            this._languageChangeListenerAdded = true;`n        }`n
         const section = document.getElementById('change-management-section');
         if (!section) {
             if (typeof Utils !== 'undefined' && Utils.safeError) {

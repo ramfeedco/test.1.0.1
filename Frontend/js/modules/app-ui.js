@@ -8595,6 +8595,16 @@ window.UI = {
                     overflow-y: auto !important;
                     overflow-x: hidden !important;
                     transform: translateX(0) !important;
+                    transition: transform 0.3s ease !important;
+                }
+                
+                /* Closed state for desktop in LTR */
+                [dir="ltr"] .sidebar:not(.open) {
+                    transform: translateX(-100%) !important;
+                }
+                
+                [dir="ltr"] .sidebar.open {
+                    transform: translateX(0) !important;
                 }
                 
                 [dir="ltr"] .sidebar .nav-item {
@@ -8667,12 +8677,7 @@ window.UI = {
                 
                 @media (max-width: 1024px) {
                     [dir="ltr"] .sidebar {
-                        transform: translateX(-100%) !important;
                         z-index: 1000 !important;
-                    }
-                    
-                    [dir="ltr"] .sidebar.open {
-                        transform: translateX(0) !important;
                     }
                     
                     [dir="ltr"] .app-shell {
@@ -8682,6 +8687,15 @@ window.UI = {
                     
                     [dir="ltr"] .mobile-topbar {
                         left: 0 !important;
+                        width: 100% !important;
+                    }
+                }
+                
+                /* When sidebar is closed on desktop in LTR, app-shell takes full width */
+                @media (min-width: 1025px) {
+                    [dir="ltr"] .sidebar:not(.open) ~ .app-shell,
+                    [dir="ltr"] body:has(.sidebar:not(.open)) .app-shell {
+                        margin-left: 0 !important;
                         width: 100% !important;
                     }
                 }

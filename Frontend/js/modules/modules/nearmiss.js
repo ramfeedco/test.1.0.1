@@ -24,7 +24,7 @@ const NearMiss = {
         editingId: null
     },
 
-    async load() {
+    async load() {`n        // Add language change listener`n        if (!this._languageChangeListenerAdded) {`n            document.addEventListener('language-changed', () => {`n                this.load();`n            });`n            this._languageChangeListenerAdded = true;`n        }`n
         try {
             const section = document.getElementById('nearmiss-section');
             if (!section) {

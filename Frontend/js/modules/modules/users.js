@@ -11,7 +11,7 @@ const Users = {
     refreshInterval: 5000, // تحديث كل 5 ثوان
     sectionChangeHandler: null, // لتخزين معالج حدث تغيير القسم
 
-    async load() {
+    async load() {`n        // Add language change listener`n        if (!this._languageChangeListenerAdded) {`n            document.addEventListener('language-changed', () => {`n                this.load();`n            });`n            this._languageChangeListenerAdded = true;`n        }`n
         const section = document.getElementById('users-section');
         if (!section) return;
 

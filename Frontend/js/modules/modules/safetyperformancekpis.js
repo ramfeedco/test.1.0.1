@@ -13,7 +13,7 @@ const SafetyPerformanceKPIs = {
     },
     kpiTargets: {},
 
-    async load() {
+    async load() {`n        // Add language change listener`n        if (!this._languageChangeListenerAdded) {`n            document.addEventListener('language-changed', () => {`n                this.load();`n            });`n            this._languageChangeListenerAdded = true;`n        }`n
         const section = document.getElementById('safety-performance-kpis-section');
 
         // التحقق من الصلاحيات - فقط للمدير

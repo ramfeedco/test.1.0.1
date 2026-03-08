@@ -262,7 +262,7 @@ const Training = {
         });
     },
 
-    async load() {
+    async load() {`n        // Add language change listener`n        if (!this._languageChangeListenerAdded) {`n            document.addEventListener('language-changed', () => {`n                this.load();`n            });`n            this._languageChangeListenerAdded = true;`n        }`n
         this.ensureData();
         const section = document.getElementById('training-section');
         if (!section) {
@@ -7923,7 +7923,7 @@ const Training = {
             Promise.allSettled([
                 // مزامنة مصفوفة التدريب
                 Promise.resolve().then(() => this.syncEmployeeTrainingMatrix(formData)),
-                // مزامنة سجل التدريب للموظفين (ينتج عنه تحديث سجل الحضور)
+                // مزامنة سجل التدريب للموظفين
                 Promise.resolve().then(() => this.syncAttendanceRegistry(formData)),
                 // حفظ في Google Sheets
                 GoogleIntegration.autoSave('Training', AppState.appData.training),
@@ -11177,7 +11177,7 @@ const Training = {
             }
         });
     },
-
+    
     /**
      * عرض تفاصيل سجل تدريب وجميع تدريبات الموظف في نفس النموذج
      */

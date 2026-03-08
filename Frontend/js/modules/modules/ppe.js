@@ -293,7 +293,7 @@ const PPE = {
         }
     },
 
-    async load() {
+    async load() {`n        // Add language change listener`n        if (!this._languageChangeListenerAdded) {`n            document.addEventListener('language-changed', () => {`n                this.load();`n            });`n            this._languageChangeListenerAdded = true;`n        }`n
         const section = document.getElementById('ppe-section');
         if (!section) {
             if (typeof Utils !== 'undefined' && Utils.safeWarn) {

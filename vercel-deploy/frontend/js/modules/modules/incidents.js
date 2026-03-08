@@ -654,6 +654,14 @@ const Incidents = {
     currentTab: 'annual-log',
 
     async load() {
+        // إضافة مستمع لتغيير اللغة
+        if (!this._languageChangeListenerAdded) {
+            document.addEventListener('language-changed', () => {
+                this.load();
+            });
+            this._languageChangeListenerAdded = true;
+        }
+
         try {
             const section = document.getElementById('incidents-section');
             if (!section) {
