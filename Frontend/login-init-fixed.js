@@ -36,9 +36,11 @@ console.log('🟢 login-init-fixed.js loaded successfully!');
             const form = document.getElementById('login-form');
             if (form) {
                 console.log('📝 Form found, attempting login...');
-                // Call handleLogin if it exists
-                if (typeof handleLogin === 'function') {
-                    handleLogin(form, e.target);
+                // Call handleLogin if it exists (exposed to window)
+                if (typeof window.handleLogin === 'function') {
+                    window.handleLogin(form, e.target);
+                } else {
+                    console.error('❌ window.handleLogin is not defined yet!');
                 }
             }
         }
