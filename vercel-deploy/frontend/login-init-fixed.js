@@ -797,6 +797,9 @@ Yasser.diab@icapp.com.eg`;
 
         })();
         
+        // ⚠️ مهم: إعادة تفعيل زر تبديل اللغة بعد استبدال النموذج
+        setupLanguageToggle();
+        
         newForm.addEventListener('submit', async function(e) {
             e.preventDefault();
             e.stopPropagation();
