@@ -80,9 +80,16 @@ function loadModule(moduleName) {
         // ✅ إضافة timestamp لتتبع وقت التحميل
         const startTime = Date.now();
         
+        // 🔍 DEBUG: Log the exact URL being loaded
+        console.log(`🔍 Loading module: ${moduleName} from URL: ${script.src}`);
+        
         script.onload = () => {
             const loadTime = Date.now() - startTime;
             log(`✅ تم تحميل الموديول: ${moduleName} (${loadTime}ms)`);
+            
+            // 🔍 DEBUG: Verify module is on window
+            const globalModule = window[moduleName.charAt(0).toUpperCase() + moduleName.slice(1)] || window[moduleName];
+            console.log(`🔍 Module ${moduleName} on window:`, typeof globalModule !== 'undefined' ? '✅ Found' : '❌ Not found');
 
             // التحقق من تحميل الموديولات المهمة بشكل خاص
             if (moduleName === 'fireequipment') {
@@ -211,6 +218,22 @@ function loadModule(moduleName) {
             const loadTime = Date.now() - startTime;
             logError(`❌ فشل تحميل الموديول: ${moduleName} بعد ${loadTime}ms`);
             logError(`   المسار: ${script.src}`);
+            logError(`   نوع الخطأ:`, error?.type || 'unknown');
+            
+            // 🔍 DEBUG: Try to fetch the file directly to see the actual HTTP error
+            fetch(script.src, { method: 'HEAD' })
+                .then(response => {
+                    console.log(`🔍 HTTP Status for ${moduleName}:`, response.status, response.statusText);
+                    if (response.status === 503) {
+                        console.error(`🚨 503 Service Unavailable - Vercel cannot serve ${moduleName}.js`);
+                        console.error(`   URL: ${script.src}`);
+                        console.error(`   Possible causes: File not found, deployment issue, or server overload`);
+                    }
+                })
+                .catch(fetchError => {
+                    console.error(`🔍 Fetch error for ${moduleName}:`, fetchError.message);
+                });
+            
             if (error && error.message) {
                 logError(`   الخطأ: ${error.message}`);
             }
