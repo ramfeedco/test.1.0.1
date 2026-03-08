@@ -9281,8 +9281,8 @@
                     if (byId("login-footer-privacy"))
                         byId("login-footer-privacy").textContent =
                             t.footerPrivacy;
-                    if (byId("login-language-toggle"))
-                        byId("login-language-toggle").setAttribute(
+                    if (byId("login-language-toggle-btn"))
+                        byId("login-language-toggle-btn").setAttribute(
                             "aria-label",
                             t.langToggleAria,
                         );
@@ -9294,7 +9294,7 @@
                 function initLoginLanguage() {
                     var lang = getLoginLang();
                     applyLoginLanguage(lang);
-                    var btn = document.getElementById("login-language-toggle");
+                    var btn = document.getElementById("login-language-toggle-btn");
                     if (btn && !btn.dataset.loginLangBound) {
                         btn.dataset.loginLangBound = "true";
                         btn.addEventListener("click", function () {
