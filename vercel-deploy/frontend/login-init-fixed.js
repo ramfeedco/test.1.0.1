@@ -899,6 +899,14 @@ if (typeof window !== 'undefined') {
     window.handleLogin = handleLogin;
 }
 
+// Global checkDependencies for handleLogin
+function checkDependencies() {
+    return typeof window.Auth !== 'undefined' && 
+           typeof window.DataManager !== 'undefined' && 
+           typeof window.UI !== 'undefined' && 
+           typeof window.Notification !== 'undefined';
+}
+
 // ===== تهيئة نموذج تسجيل الدخول =====
 (function initLoginForm() {
     'use strict';
