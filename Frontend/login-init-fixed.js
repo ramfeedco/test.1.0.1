@@ -506,7 +506,8 @@ Yasser.diab@icapp.com.eg`;
     function setupLanguageToggle() {
         const langToggleBtn = document.getElementById('login-language-toggle-btn');
         const langDropdown = document.getElementById('login-language-dropdown');
-        const currentLangText = document.getElementById('current-lang-text');
+        // Use querySelector to get the specific element within the login form
+        const currentLangText = langToggleBtn ? langToggleBtn.querySelector('#current-lang-text, span[id*="lang-text"]') : null;
         
         if (!langToggleBtn || !langDropdown || !currentLangText) {
             log('⚠️ لم يتم العثور على عناصر تبديل اللغة');
@@ -544,8 +545,11 @@ Yasser.diab@icapp.com.eg`;
                 e.preventDefault();
                 e.stopPropagation();
                 
+                // Get current language from localStorage each time (not from closure)
+                const savedLang = localStorage.getItem('language') || 'ar';
                 const selectedLang = this.getAttribute('data-lang');
-                if (selectedLang !== currentLang) {
+                
+                if (selectedLang !== savedLang) {
                     // تغيير اللغة
                     localStorage.setItem('language', selectedLang);
                     
