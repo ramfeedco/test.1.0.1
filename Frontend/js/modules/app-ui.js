@@ -8472,18 +8472,20 @@ window.UI = {
 
         // إصلاحات خاصة باللغة الإنجليزية
         if (!isRTL) {
-            // تحديث موضع القائمة الجانبية
+            // تحديث موضع القائمة الجانبية - نفس العربية تماماً ولكن على اليسار
             sidebar.style.position = 'fixed';
             sidebar.style.top = '0';
             sidebar.style.left = '0';
             sidebar.style.right = 'auto';
             sidebar.style.width = 'var(--sidebar-width, 280px)';
             sidebar.style.height = '100vh';
-            sidebar.style.zIndex = '1000';
-            sidebar.style.backgroundColor = '#1e293b';
+            sidebar.style.zIndex = '100'; // تقليل z-index لتجنب التداخل مع الهيدر
+            sidebar.style.backgroundColor = '#003865'; // نفس لون العربية
             sidebar.style.borderRight = '3px solid #FFC72C';
             sidebar.style.borderLeft = 'none';
             sidebar.style.boxShadow = '2px 0 10px rgba(0,0,0,0.1)';
+            sidebar.style.overflowY = 'auto';
+            sidebar.style.overflowX = 'hidden';
 
             // تحديث اتجاه القائمة
             sidebar.dir = 'ltr';
@@ -8493,16 +8495,17 @@ window.UI = {
             navItems.forEach(item => {
                 item.style.display = 'flex';
                 item.style.alignItems = 'center';
-                item.style.width = '100%';
-                item.style.padding = isRTL ? '12px 16px 12px 12px' : '12px 12px 12px 16px';
+                item.style.width = 'calc(100% - 16px)';
+                item.style.padding = '12px 12px 12px 16px';
                 item.style.margin = '4px 8px';
                 item.style.borderRadius = '8px';
-                item.style.color = '#e2e8f0';
+                item.style.color = 'white';
                 item.style.textDecoration = 'none';
                 item.style.transition = 'all 0.3s ease';
                 item.style.cursor = 'pointer';
                 item.style.borderLeft = '4px solid transparent';
                 item.style.borderRight = 'none';
+                item.style.flexDirection = 'row';
                 
                 // إصلاح الأيقونات والنصوص
                 const icon = item.querySelector('i');
@@ -8515,6 +8518,7 @@ window.UI = {
                     icon.style.marginRight = '12px';
                     icon.style.marginLeft = '0';
                     icon.style.flexShrink = '0';
+                    icon.style.color = 'white';
                 }
                 
                 if (text) {
@@ -8525,27 +8529,7 @@ window.UI = {
                     text.style.whiteSpace = 'nowrap';
                     text.style.overflow = 'hidden';
                     text.style.textOverflow = 'ellipsis';
-                }
-                
-                // تأثير hover
-                item.addEventListener('mouseenter', () => {
-                    item.style.backgroundColor = '#334155';
-                    item.style.borderLeftColor = '#FFC72C';
-                    item.style.transform = 'translateX(3px)';
-                });
-                
-                item.addEventListener('mouseleave', () => {
-                    if (!item.classList.contains('active')) {
-                        item.style.backgroundColor = 'transparent';
-                        item.style.borderLeftColor = 'transparent';
-                        item.style.transform = 'translateX(0)';
-                    }
-                });
-                
-                // العنصر النشط
-                if (item.classList.contains('active')) {
-                    item.style.backgroundColor = '#334155';
-                    item.style.borderLeftColor = '#FFC72C';
+                    text.style.color = 'white';
                 }
             });
 
@@ -8553,7 +8537,7 @@ window.UI = {
             const sidebarHeader = sidebar.querySelector('.sidebar-header');
             if (sidebarHeader) {
                 sidebarHeader.style.padding = '20px 16px';
-                sidebarHeader.style.borderBottom = '1px solid #334155';
+                sidebarHeader.style.borderBottom = '1px solid rgba(255,255,255,0.2)';
                 sidebarHeader.style.textAlign = 'left';
             }
 
@@ -8562,21 +8546,31 @@ window.UI = {
             if (logo) {
                 logo.style.fontSize = '20px';
                 logo.style.fontWeight = 'bold';
-                logo.style.color = '#f8fafc';
+                logo.style.color = 'white';
                 logo.style.textAlign = 'left';
                 logo.style.marginBottom = '8px';
             }
 
-            // تحديث مساحة المحتوى الرئيسي
+            // تحديث مساحة المحتوى الرئيسي - نفس العربية
             const appShell = document.querySelector('.app-shell');
             if (appShell) {
                 appShell.style.marginLeft = 'var(--sidebar-width, 280px)';
                 appShell.style.marginRight = '0';
-                appShell.style.transition = 'margin-left 0.3s ease';
+                appShell.style.width = 'calc(100% - var(--sidebar-width, 280px))';
+                appShell.style.transition = 'margin-left 0.3s ease, width 0.3s ease';
+                appShell.style.minHeight = '100vh';
             }
 
-            // إضافة CSS ديناميكي للإصلاحات
-            const styleId = 'sidebar-english-fix';
+            // إصلاح المحتوى الرئيسي
+            const mainContent = document.querySelector('.main-content');
+            if (mainContent) {
+                mainContent.style.marginLeft = '0';
+                mainContent.style.marginRight = '0';
+                mainContent.style.width = '100%';
+            }
+
+            // إضافة CSS ديناميكي شامل للإصلاحات
+            const styleId = 'sidebar-english-fix-v2';
             let styleElement = document.getElementById(styleId);
             if (!styleElement) {
                 styleElement = document.createElement('style');
@@ -8585,6 +8579,7 @@ window.UI = {
             }
             
             styleElement.textContent = `
+                /* إصلاحات القائمة الجانبية في اللغة الإنجليزية */
                 [dir="ltr"] .sidebar {
                     position: fixed !important;
                     top: 0 !important;
@@ -8592,38 +8587,39 @@ window.UI = {
                     right: auto !important;
                     width: var(--sidebar-width, 280px) !important;
                     height: 100vh !important;
-                    z-index: 1000 !important;
-                    background-color: #1e293b !important;
+                    z-index: 100 !important;
+                    background: linear-gradient(180deg, #003865 0%, #004C8C 50%, #003865 100%) !important;
                     border-right: 3px solid #FFC72C !important;
                     border-left: none !important;
                     box-shadow: 2px 0 10px rgba(0,0,0,0.1) !important;
+                    overflow-y: auto !important;
+                    overflow-x: hidden !important;
+                    transform: translateX(0) !important;
                 }
                 
                 [dir="ltr"] .sidebar .nav-item {
                     display: flex !important;
                     align-items: center !important;
-                    width: 100% !important;
+                    width: calc(100% - 16px) !important;
                     padding: 12px 12px 12px 16px !important;
                     margin: 4px 8px !important;
                     border-radius: 8px !important;
-                    color: #e2e8f0 !important;
-                    text-decoration: none !important;
-                    transition: all 0.3s ease !important;
-                    cursor: pointer !important;
+                    color: white !important;
                     border-left: 4px solid transparent !important;
                     border-right: none !important;
                     flex-direction: row !important;
-                    justify-content: flex-start !important;
+                    text-decoration: none !important;
+                    transition: all 0.3s ease !important;
                 }
                 
                 [dir="ltr"] .sidebar .nav-item:hover {
-                    background-color: #334155 !important;
+                    background: rgba(255,255,255,0.1) !important;
                     border-left-color: #FFC72C !important;
                     transform: translateX(3px) !important;
                 }
                 
                 [dir="ltr"] .sidebar .nav-item.active {
-                    background-color: #334155 !important;
+                    background: rgba(255,255,255,0.15) !important;
                     border-left-color: #FFC72C !important;
                 }
                 
@@ -8634,6 +8630,7 @@ window.UI = {
                     margin-right: 12px !important;
                     margin-left: 0 !important;
                     flex-shrink: 0 !important;
+                    color: white !important;
                 }
                 
                 [dir="ltr"] .sidebar .nav-item span {
@@ -8644,17 +8641,34 @@ window.UI = {
                     white-space: nowrap !important;
                     overflow: hidden !important;
                     text-overflow: ellipsis !important;
+                    color: white !important;
                 }
                 
+                /* إصلاح app-shell في اللغة الإنجليزية */
                 [dir="ltr"] .app-shell {
                     margin-left: var(--sidebar-width, 280px) !important;
                     margin-right: 0 !important;
-                    transition: margin-left 0.3s ease !important;
+                    width: calc(100% - var(--sidebar-width, 280px)) !important;
+                    min-height: 100vh !important;
+                    transition: margin-left 0.3s ease, width 0.3s ease !important;
                 }
                 
-                @media (max-width: 768px) {
+                [dir="ltr"] .main-content {
+                    margin-left: 0 !important;
+                    margin-right: 0 !important;
+                    width: 100% !important;
+                }
+                
+                [dir="ltr"] .mobile-topbar {
+                    left: var(--sidebar-width, 280px) !important;
+                    right: 0 !important;
+                    width: calc(100% - var(--sidebar-width, 280px)) !important;
+                }
+                
+                @media (max-width: 1024px) {
                     [dir="ltr"] .sidebar {
                         transform: translateX(-100%) !important;
+                        z-index: 1000 !important;
                     }
                     
                     [dir="ltr"] .sidebar.open {
@@ -8663,6 +8677,12 @@ window.UI = {
                     
                     [dir="ltr"] .app-shell {
                         margin-left: 0 !important;
+                        width: 100% !important;
+                    }
+                    
+                    [dir="ltr"] .mobile-topbar {
+                        left: 0 !important;
+                        width: 100% !important;
                     }
                 }
             `;
@@ -8675,8 +8695,8 @@ window.UI = {
             sidebar.style.left = 'auto';
             sidebar.style.width = 'var(--sidebar-width, 280px)';
             sidebar.style.height = '100vh';
-            sidebar.style.zIndex = '1000';
-            sidebar.style.backgroundColor = '#1e293b';
+            sidebar.style.zIndex = '100';
+            sidebar.style.background = 'linear-gradient(180deg, #003865 0%, #004C8C 50%, #003865 100%)';
             sidebar.style.borderLeft = '3px solid #FFC72C';
             sidebar.style.borderRight = 'none';
             sidebar.style.boxShadow = '-2px 0 10px rgba(0,0,0,0.1)';
@@ -8686,7 +8706,8 @@ window.UI = {
             if (appShell) {
                 appShell.style.marginRight = 'var(--sidebar-width, 280px)';
                 appShell.style.marginLeft = '0';
-                appShell.style.transition = 'margin-right 0.3s ease';
+                appShell.style.width = 'calc(100% - var(--sidebar-width, 280px))';
+                appShell.style.transition = 'margin-right 0.3s ease, width 0.3s ease';
             }
         }
 
