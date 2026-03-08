@@ -998,9 +998,11 @@ Yasser.diab@icapp.com.eg`;
     
     // انتظار تحميل الوحدات
     function waitForDependenciesAndInit() {
+        // تهيئة النموذج فوراً بدون انتظار الوحدات
+        setupLoginForm();
+        
         if (checkDependencies()) {
-            log('✅ جميع الوحدات محملة - تهيئة نموذج تسجيل الدخول...');
-            setupLoginForm();
+            log('✅ جميع الوحدات محملة');
             return;
         }
         
@@ -1013,8 +1015,7 @@ Yasser.diab@icapp.com.eg`;
             
             if (checkDependencies()) {
                 clearInterval(checkInterval);
-                log('✅ جميع الوحدات محملة بعد ' + attempts + ' محاولة - تهيئة نموذج تسجيل الدخول...');
-                setupLoginForm();
+                log('✅ جميع الوحدات محملة بعد ' + attempts + ' محاولة');
             } else if (attempts >= maxAttempts) {
                 clearInterval(checkInterval);
                 console.error('❌ انتهت محاولات انتظار الوحدات');
