@@ -255,7 +255,15 @@ Object.assign(window.AIAssistant, {
         }
     },
 
-    async load() {`n        // Add language change listener`n        if (!this._languageChangeListenerAdded) {`n            document.addEventListener('language-changed', () => {`n                this.load();`n            });`n            this._languageChangeListenerAdded = true;`n        }`n
+    async load() {
+        // Add language change listener
+        if (!this._languageChangeListenerAdded) {
+            document.addEventListener('language-changed', () => {
+                this.load();
+            });
+            this._languageChangeListenerAdded = true;
+        }
+
         // التحقق من وجود التبعيات المطلوبة
         if (typeof Utils === 'undefined') {
             console.error('Utils غير متوفر!');

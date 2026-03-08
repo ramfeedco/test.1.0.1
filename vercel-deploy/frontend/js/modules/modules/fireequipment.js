@@ -82,9 +82,14 @@ FireEquipment = {
         }
 
         try {
-        const section = document.getElementById('fire-equipment-section');
-        if (!section) {
-            if (typeof Utils !== 'undefined' && Utils.safeError) {
+            const section = document.getElementById('fire-equipment-section');
+            if (!section) {
+                if (typeof Utils !== 'undefined' && Utils.safeError) {
+                    Utils.safeError('قسم fire-equipment-section غير موجود!');
+                } else {
+                    console.error('قسم fire-equipment-section غير موجود!');
+                }
+                return;
                 Utils.safeError('قسم fire-equipment-section غير موجود!');
             } else {
                 console.error('قسم fire-equipment-section غير موجود!');

@@ -19,7 +19,15 @@ const Emergency = {
         notificationCheckInterval: null
     },
 
-    async load() {`n        // Add language change listener`n        if (!this._languageChangeListenerAdded) {`n            document.addEventListener('language-changed', () => {`n                this.load();`n            });`n            this._languageChangeListenerAdded = true;`n        }`n
+    async load() {
+        // Add language change listener
+        if (!this._languageChangeListenerAdded) {
+            document.addEventListener('language-changed', () => {
+                this.load();
+            });
+            this._languageChangeListenerAdded = true;
+        }
+
         try {
             const moduleRef = Emergency;
             const section = document.getElementById('emergency-section');

@@ -3,6 +3,9 @@
  * تم استخراجه من app-modules.js
  */
 
+// 🔥 DEBUG: Verify this file is executing
+console.log('🔥 users.js IS EXECUTING - Line 6');
+
 // ===== Users Module =====
 const Users = {
     currentView: 'list', // list, form, edit
@@ -11,7 +14,14 @@ const Users = {
     refreshInterval: 5000, // تحديث كل 5 ثوان
     sectionChangeHandler: null, // لتخزين معالج حدث تغيير القسم
 
-    async load() {`n        // Add language change listener`n        if (!this._languageChangeListenerAdded) {`n            document.addEventListener('language-changed', () => {`n                this.load();`n            });`n            this._languageChangeListenerAdded = true;`n        }`n
+    async load() {
+        // Add language change listener
+        if (!this._languageChangeListenerAdded) {
+            document.addEventListener('language-changed', () => {
+                this.load();
+            });
+            this._languageChangeListenerAdded = true;
+        }
         const section = document.getElementById('users-section');
         if (!section) return;
 
@@ -2083,16 +2093,22 @@ const Users = {
 
 // ===== Export module to global scope =====
 // تصدير الموديول إلى window فوراً لضمان توافره
+console.log('🔥 users.js EXPORT SECTION STARTING');
 (function () {
     'use strict';
     try {
         if (typeof window !== 'undefined' && typeof Users !== 'undefined') {
             window.Users = Users;
+            console.log('✅ users.js: window.Users SET SUCCESSFULLY');
             
             // إشعار عند تحميل الموديول بنجاح
             if (typeof AppState !== 'undefined' && AppState.debugMode && typeof Utils !== 'undefined' && Utils.safeLog) {
                 Utils.safeLog('✅ Users module loaded and available on window.Users');
             }
+        } else {
+            console.error('❌ users.js EXPORT FAILED: window or Users undefined');
+            console.log('   typeof window:', typeof window);
+            console.log('   typeof Users:', typeof Users);
         }
     } catch (error) {
         console.error('❌ خطأ في تصدير Users:', error);
