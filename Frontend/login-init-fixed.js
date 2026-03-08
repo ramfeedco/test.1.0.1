@@ -6,7 +6,7 @@ console.log('🟢 login-init-fixed.js loaded successfully!');
 (function () {
     'use strict';
 
-    // Logger صامت في الإنتاج (لتقليل الضوضاء في Console)
+    // Logger للـ debugging (يعمل في كل البيئات)
     const log = (...args) => {
         try {
             if (typeof window !== 'undefined' && window.Utils && typeof window.Utils.safeLog === 'function') {
@@ -14,9 +14,9 @@ console.log('🟢 login-init-fixed.js loaded successfully!');
                 return;
             }
         } catch (e) { /* ignore */ }
-        // fallback: log فقط في localhost
+        // fallback: log دائماً للـ debugging
         try {
-            if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
+            if (typeof window !== 'undefined' && console && console.log) {
                 console.log(...args);
             }
         } catch (e) { /* ignore */ }
