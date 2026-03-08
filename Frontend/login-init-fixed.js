@@ -868,9 +868,12 @@ Yasser.diab@icapp.com.eg`;
 }
 
     function setupLoginForm() {
+        console.log('🚀 setupLoginForm called!');
         const loginForm = document.getElementById('login-form');
+        console.log('🔍 Login form found:', loginForm);
         
         if (!loginForm) {
+            console.error('❌ Login form not found!');
             return false;
         }
         
@@ -987,7 +990,10 @@ Yasser.diab@icapp.com.eg`;
         
         // إضافة مستمع مباشر على زر الإرسال
         const submitBtn = newForm.querySelector('#login-submit-btn');
+        console.log('🔍 Looking for submit button:', submitBtn);
+        
         if (submitBtn) {
+            console.log('✅ Submit button found, attaching click listener');
             submitBtn.addEventListener('click', async function(e) {
                 console.log('🔥 Submit button clicked!');
                 e.preventDefault();
@@ -1000,6 +1006,8 @@ Yasser.diab@icapp.com.eg`;
                 
                 return false;
             }, true);
+        } else {
+            console.error('❌ Submit button not found! Available buttons:', newForm.querySelectorAll('button'));
         }
         
         newForm.addEventListener('submit', async function(e) {
