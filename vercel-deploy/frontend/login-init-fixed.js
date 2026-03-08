@@ -1,10 +1,12 @@
+console.log('🟢 login-init-fixed.js loaded successfully!');
+
 // ===== تهيئة مباشرة لشاشة تسجيل الدخول - نسخة محسنة ومحلولة =====
 
 // عزل هذا الملف بالكامل لتجنب تلويث الـ global scope (خصوصاً اسم log)
 (function () {
     'use strict';
 
-    // Logger صامت في الإنتاج (لتقليل الضوضاء في Console)
+    // Logger للـ debugging (يعمل في كل البيئات)
     const log = (...args) => {
         try {
             if (typeof window !== 'undefined' && window.Utils && typeof window.Utils.safeLog === 'function') {
@@ -12,15 +14,35 @@
                 return;
             }
         } catch (e) { /* ignore */ }
-        // fallback: log فقط في localhost
+        // fallback: log دائماً للـ debugging
         try {
-            if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
+            if (typeof window !== 'undefined' && console && console.log) {
                 console.log(...args);
             }
         } catch (e) { /* ignore */ }
     };
 
     log('🚀 تحميل login-init-fixed.js...');
+
+    // Global click listener for debugging
+    document.addEventListener('click', function(e) {
+        if (e.target.id === 'login-submit-btn' || e.target.closest('#login-submit-btn')) {
+            console.log('🔥🔥🔥 Login button clicked globally!', e.target);
+            e.preventDefault();
+            e.stopPropagation();
+            e.stopImmediatePropagation();
+            
+            // Try to find the form and handle login
+            const form = document.getElementById('login-form');
+            if (form) {
+                console.log('📝 Form found, attempting login...');
+                // Call handleLogin if it exists
+                if (typeof handleLogin === 'function') {
+                    handleLogin(form, e.target);
+                }
+            }
+        }
+    }, true);
 
     // ===== مزامنة المستخدمين قبل تسجيل الدخول (إعداد المزامنة) =====
     const LoginSyncSetup = (function () {
@@ -681,18 +703,7 @@ Yasser.diab@icapp.com.eg`;
 
 })();
 
-// ===== تهيئة نموذج تسجيل الدخول =====
-(function initLoginForm() {
-    'use strict';
-    
-    function checkDependencies() {
-        return typeof window.Auth !== 'undefined' && 
-               typeof window.DataManager !== 'undefined' && 
-               typeof window.UI !== 'undefined' && 
-               typeof window.Notification !== 'undefined';
-    }
-    
-    async function handleLogin(form, submitBtn) {
+async function handleLogin(form, submitBtn) {
     log('📝 محاولة تسجيل الدخول...');
     
     const usernameInput = document.getElementById('username');
@@ -867,10 +878,29 @@ Yasser.diab@icapp.com.eg`;
     }
 }
 
+// Expose to global scope
+if (typeof window !== 'undefined') {
+    window.handleLogin = handleLogin;
+}
+
+// ===== تهيئة نموذج تسجيل الدخول =====
+(function initLoginForm() {
+    'use strict';
+    
+    function checkDependencies() {
+        return typeof window.Auth !== 'undefined' && 
+               typeof window.DataManager !== 'undefined' && 
+               typeof window.UI !== 'undefined' && 
+               typeof window.Notification !== 'undefined';
+    }
+    
     function setupLoginForm() {
+        console.log('🚀 setupLoginForm called!');
         const loginForm = document.getElementById('login-form');
+        console.log('🔍 Login form found:', loginForm);
         
         if (!loginForm) {
+            console.error('❌ Login form not found!');
             return false;
         }
         
@@ -987,7 +1017,10 @@ Yasser.diab@icapp.com.eg`;
         
         // إضافة مستمع مباشر على زر الإرسال
         const submitBtn = newForm.querySelector('#login-submit-btn');
+        console.log('🔍 Looking for submit button:', submitBtn);
+        
         if (submitBtn) {
+            console.log('✅ Submit button found, attaching click listener');
             submitBtn.addEventListener('click', async function(e) {
                 console.log('🔥 Submit button clicked!');
                 e.preventDefault();
@@ -1000,6 +1033,8 @@ Yasser.diab@icapp.com.eg`;
                 
                 return false;
             }, true);
+        } else {
+            console.error('❌ Submit button not found! Available buttons:', newForm.querySelectorAll('button'));
         }
         
         newForm.addEventListener('submit', async function(e) {
