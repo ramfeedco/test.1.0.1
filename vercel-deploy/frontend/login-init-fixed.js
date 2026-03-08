@@ -502,13 +502,148 @@ Yasser.diab@icapp.com.eg`;
         return true;
     }
 
+    // تهيئة زر اللغة في شاشة تسجيل الدخول
+    function setupLanguageToggle() {
+        const langToggleBtn = document.getElementById('login-language-toggle-btn');
+        const langDropdown = document.getElementById('login-language-dropdown');
+        // Use querySelector to get the specific element within the login form
+        const currentLangText = langToggleBtn ? langToggleBtn.querySelector('#current-lang-text, span[id*="lang-text"]') : null;
+        
+        if (!langToggleBtn || !langDropdown || !currentLangText) {
+            log('⚠️ لم يتم العثور على عناصر تبديل اللغة');
+            return false;
+        }
+        
+        // تحميل اللغة الحالية
+        const currentLang = localStorage.getItem('language') || 'ar';
+        currentLangText.textContent = currentLang === 'ar' ? 'العربية' : 'English';
+        
+        // منع تكرار الربط
+        if (langToggleBtn.dataset.handlerBound === 'true') {
+            return true;
+        }
+        
+        // تبديل القائمة المنسدلة
+        langToggleBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            const isHidden = langDropdown.classList.contains('hidden');
+            if (isHidden) {
+                langDropdown.classList.remove('hidden');
+                langDropdown.classList.add('show');
+            } else {
+                langDropdown.classList.add('hidden');
+                langDropdown.classList.remove('show');
+            }
+        });
+        
+        // معالجة اختيار اللغة
+        const langButtons = langDropdown.querySelectorAll('[data-lang]');
+        langButtons.forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                // Get current language from localStorage each time (not from closure)
+                const savedLang = localStorage.getItem('language') || 'ar';
+                const selectedLang = this.getAttribute('data-lang');
+                
+                if (selectedLang !== savedLang) {
+                    // تغيير اللغة
+                    localStorage.setItem('language', selectedLang);
+                    
+                    // تحديث اتجاه الصفحة
+                    const isRTL = selectedLang === 'ar';
+                    document.documentElement.dir = isRTL ? 'rtl' : 'ltr';
+                    document.documentElement.lang = selectedLang;
+                    
+                    if (document.body) {
+                        document.body.dir = isRTL ? 'rtl' : 'ltr';
+                    }
+                    
+                    // تحديث النص
+                    currentLangText.textContent = selectedLang === 'ar' ? 'العربية' : 'English';
+                    
+                    // تحديث نصوص تسجيل الدخول
+                    updateLoginTexts(selectedLang);
+                    
+                    // إغلاق القائمة
+                    langDropdown.classList.add('hidden');
+                    langDropdown.classList.remove('show');
+                    
+                    log('✅ تم تغيير اللغة إلى:', selectedLang);
+                }
+            });
+        });
+        
+        // إغلاق القائمة عند النقر خارجها
+        document.addEventListener('click', function(e) {
+            if (!langToggleBtn.contains(e.target) && !langDropdown.contains(e.target)) {
+                langDropdown.classList.add('hidden');
+                langDropdown.classList.remove('show');
+            }
+        });
+        
+        langToggleBtn.dataset.handlerBound = 'true';
+        log('✅ تم تفعيل زر تبديل اللغة');
+        return true;
+    }
+    
+    // تحديث نصوص تسجيل الدخول حسب اللغة
+    function updateLoginTexts(lang) {
+        const texts = {
+            ar: {
+                email: 'البريد الإلكتروني',
+                password: 'كلمة المرور',
+                login: 'تسجيل الدخول',
+                help: 'مساعدة / Help',
+                forgot: 'نسيت كلمة المرور؟'
+            },
+            en: {
+                email: 'Email',
+                password: 'Password',
+                login: 'Log in',
+                help: 'Help',
+                forgot: 'Forgot password?'
+            }
+        };
+        
+        const t = texts[lang];
+        if (!t) return;
+        
+        // تحديث العناصر ذات data-i18n
+        const elements = document.querySelectorAll('[data-i18n]');
+        elements.forEach(el => {
+            const key = el.getAttribute('data-i18n');
+            if (t[key]) {
+                el.textContent = t[key];
+            }
+        });
+        
+        // تحديث العناصر المحددة بالـ ID
+        const updates = {
+            'login-email-text': t.email,
+            'login-password-text': t.password,
+            'login-submit-text': t.login,
+            'login-help-text': t.help,
+            'login-forgot-text': t.forgot
+        };
+        
+        Object.entries(updates).forEach(([id, text]) => {
+            const el = document.getElementById(id);
+            if (el) el.textContent = text;
+        });
+    }
+
     // محاولة التهيئة الفورية
     function tryInit() {
         const passwordOk = setupPasswordToggle();
         const forgotOk = setupForgotPassword();
         const helpOk = setupHelpButton();
+        const langOk = setupLanguageToggle();
 
-        if (passwordOk && forgotOk && helpOk) {
+        if (passwordOk && forgotOk && helpOk && langOk) {
             log('✅ تم تهيئة جميع أزرار تسجيل الدخول بنجاح');
             return true;
         }
