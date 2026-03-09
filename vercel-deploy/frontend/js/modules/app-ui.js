@@ -7900,16 +7900,22 @@ window.UI = {
             return; // لا نعرض تحذير إذا كنا لسنا في شاشة تسجيل الدخول
         }
 
+        // التحقق مما إذا كان login-init-fixed.js قد قام بالفعل بتهيئة الزر
+        if (loginLangToggle.dataset.handlerBound === 'true') {
+            Utils.safeLog('ℹ️ زر اللغة في شاشة تسجيل الدخول مفعل مسبقاً بواسطة login-init-fixed.js');
+            return;
+        }
+
+        // منع تكرار الربط من هذا الملف أيضاً
+        if (loginLangToggle.dataset.loginLangBound === 'true') {
+            return;
+        }
+
         // تحميل اللغة الحالية
         const currentLang = localStorage.getItem('language') || 'ar';
         const currentLangText = document.getElementById('current-lang-text');
         if (currentLangText) {
             currentLangText.textContent = currentLang === 'ar' ? 'العربية' : 'English';
-        }
-
-        // منع تكرار الربط
-        if (loginLangToggle.dataset.loginLangBound === 'true') {
-            return;
         }
 
         // تبديل القائمة المنسدلة
@@ -7937,14 +7943,15 @@ window.UI = {
                 e.stopPropagation();
                 
                 const selectedLang = btn.getAttribute('data-lang');
-                if (selectedLang !== currentLang) {
+                const savedLang = localStorage.getItem('language') || 'ar';
+                if (selectedLang !== savedLang) {
                     this.setLanguage(selectedLang);
-                    
-                    // إغلاق القائمة
-                    loginLangDropdown.classList.add('hidden');
-                    loginLangDropdown.classList.remove('show');
-                    loginLangToggle.classList.remove('active');
                 }
+                
+                // إغلاق القائمة
+                loginLangDropdown.classList.add('hidden');
+                loginLangDropdown.classList.remove('show');
+                loginLangToggle.classList.remove('active');
             });
         });
 
