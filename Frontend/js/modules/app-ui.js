@@ -7814,13 +7814,71 @@ window.UI = {
         const savedLang = localStorage.getItem('language') || AppState.currentLanguage || 'ar';
         this.setLanguage(savedLang, true); // true = تهيئة أولية (لا نعرض إشعار)
 
-        // ربط الزر
+        // إنشاء القائمة المنسدلة للغات إذا لم تكن موجودة
+        let langDropdown = document.getElementById('main-language-dropdown');
+        if (!langDropdown) {
+            langDropdown = document.createElement('div');
+            langDropdown.id = 'main-language-dropdown';
+            langDropdown.className = 'language-dropdown absolute bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-50 mt-1 hidden';
+            langDropdown.style.minWidth = '140px';
+            langDropdown.innerHTML = `
+                <button class="block w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300" data-lang="ar">
+                    <span class="ml-2">🇸🇦</span> العربية
+                </button>
+                <button class="block w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300" data-lang="en">
+                    <span class="ml-2">🇬🇧</span> English
+                </button>
+            `;
+            // إضافة القائمة بعد زر اللغة
+            langToggle.parentElement.style.position = 'relative';
+            langToggle.parentElement.appendChild(langDropdown);
+        }
+
+        // ربط الزر لفتح/إغلاق القائمة
         langToggle.addEventListener('click', (e) => {
             e.preventDefault();
             e.stopPropagation();
-            const currentLang = localStorage.getItem('language') || AppState.currentLanguage || 'ar';
-            const newLang = currentLang === 'ar' ? 'en' : 'ar';
-            this.setLanguage(newLang);
+            
+            const isHidden = langDropdown.classList.contains('hidden');
+            if (isHidden) {
+                langDropdown.classList.remove('hidden');
+                langDropdown.classList.add('show');
+                langToggle.classList.add('active');
+            } else {
+                langDropdown.classList.add('hidden');
+                langDropdown.classList.remove('show');
+                langToggle.classList.remove('active');
+            }
+        });
+
+        // معالجة اختيار اللغة من القائمة
+        const langButtons = langDropdown.querySelectorAll('[data-lang]');
+        langButtons.forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                const selectedLang = btn.getAttribute('data-lang');
+                const currentLang = localStorage.getItem('language') || AppState.currentLanguage || 'ar';
+                
+                if (selectedLang !== currentLang) {
+                    this.setLanguage(selectedLang);
+                }
+                
+                // إغلاق القائمة
+                langDropdown.classList.add('hidden');
+                langDropdown.classList.remove('show');
+                langToggle.classList.remove('active');
+            });
+        });
+
+        // إغلاق القائمة عند النقر خارجها
+        document.addEventListener('click', (e) => {
+            if (!langToggle.contains(e.target) && !langDropdown.contains(e.target)) {
+                langDropdown.classList.add('hidden');
+                langDropdown.classList.remove('show');
+                langToggle.classList.remove('active');
+            }
         });
 
         langToggle.dataset.languageBound = 'true';

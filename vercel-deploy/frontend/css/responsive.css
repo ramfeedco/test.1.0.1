@@ -1,3 +1,75 @@
+/* ===== Language Dropdown Styles ===== */
+.language-dropdown {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    min-width: 140px;
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    z-index: 50;
+    margin-top: 4px;
+    overflow: hidden;
+}
+
+.language-dropdown.hidden {
+    display: none;
+}
+
+.language-dropdown.show {
+    display: block;
+}
+
+.language-dropdown button {
+    display: block;
+    width: 100%;
+    padding: 8px 16px;
+    text-align: left;
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 14px;
+    color: #374151;
+    transition: background-color 0.2s ease;
+}
+
+.language-dropdown button:hover {
+    background-color: #f3f4f6;
+}
+
+.dark .language-dropdown {
+    background: #1f2937;
+    border-color: #374151;
+}
+
+.dark .language-dropdown button {
+    color: #d1d5db;
+}
+
+.dark .language-dropdown button:hover {
+    background-color: #374151;
+}
+
+/* Language toggle button active state */
+#language-toggle.active,
+#login-language-toggle-btn.active {
+    background-color: rgba(255, 199, 44, 0.2);
+    border-color: #FFC72C;
+}
+
+/* LTR styles for language dropdown */
+html[lang="en"] .language-dropdown,
+body[lang="en"] .language-dropdown {
+    right: auto;
+    left: 0;
+}
+
+html[lang="en"] .language-dropdown button,
+body[lang="en"] .language-dropdown button {
+    text-align: left;
+}
+
 /* ===== Base Styles ===== */
 * {
     margin: 0;
