@@ -7913,7 +7913,7 @@ window.UI = {
 
         // تحميل اللغة الحالية
         const currentLang = localStorage.getItem('language') || 'ar';
-        const currentLangText = document.getElementById('current-lang-text');
+        const currentLangText = loginLangToggle.querySelector('#current-lang-text');
         if (currentLangText) {
             currentLangText.textContent = currentLang === 'ar' ? 'العربية' : 'English';
         }
@@ -8124,10 +8124,16 @@ window.UI = {
             }
         `;
 
-        // تحديث نص زر اللغة في التطبيق الرئيسي
-        const langText = document.getElementById('current-lang-text');
-        if (langText) {
-            langText.textContent = lang === 'ar' ? 'العربية' : 'English';
+        // تحديث نص زر اللغة في التطبيق الرئيسي (مع تجنب تعارض IDs المكررة)
+        const mainLangText = document.querySelector('#language-toggle #current-lang-text');
+        if (mainLangText) {
+            mainLangText.textContent = lang === 'ar' ? 'العربية' : 'English';
+        }
+
+        // تحديث نص زر اللغة في شاشة الدخول عند وجوده
+        const loginLangText = document.querySelector('#login-language-toggle-btn #current-lang-text');
+        if (loginLangText) {
+            loginLangText.textContent = lang === 'ar' ? 'العربية' : 'English';
         }
 
         // تحديث جميع العناصر التي تحتوي على data-i18n (القائمة + لوحة التحكم)
@@ -8371,7 +8377,15 @@ window.UI = {
         const texts = loginTexts[lang];
         if (!texts) return;
 
+        const loginCurrentLangText = document.querySelector('#login-language-toggle-btn #current-lang-text');
+        if (loginCurrentLangText && texts['current-lang-text']) {
+            loginCurrentLangText.textContent = texts['current-lang-text'];
+        }
+
         Object.entries(texts).forEach(([id, text]) => {
+            if (id === 'current-lang-text') {
+                return;
+            }
             const element = document.getElementById(id);
             if (element) {
                 element.textContent = text;
