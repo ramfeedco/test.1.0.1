@@ -21,6 +21,10 @@
     display: block;
 }
 
+#login-language-dropdown.show {
+    display: block !important;
+}
+
 .language-dropdown button {
     display: block;
     width: 100%;
