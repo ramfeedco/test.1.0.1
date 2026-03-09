@@ -6411,3 +6411,345 @@ if (typeof window !== 'undefined') {
 // const Utils = window.Utils;
 // const Loading = window.Loading;
 
+// ========================================
+// نظام الترجمة العالمي (i18n)
+// ========================================
+const I18n = {
+    // اللغة الافتراضية
+    defaultLanguage: 'ar',
+
+    // قاموس الترجمات
+    translations: {
+        ar: {
+            // أزرار عامة
+            'btn.add': 'إضافة',
+            'btn.edit': 'تعديل',
+            'btn.delete': 'حذف',
+            'btn.save': 'حفظ',
+            'btn.cancel': 'إلغاء',
+            'btn.close': 'إغلاق',
+            'btn.refresh': 'تحديث',
+            'btn.search': 'بحث',
+            'btn.reset': 'إعادة تعيين',
+            'btn.export': 'تصدير',
+            'btn.import': 'استيراد',
+            'btn.print': 'طباعة',
+            'btn.view': 'عرض',
+            'btn.details': 'التفاصيل',
+            'btn.back': 'رجوع',
+            'btn.next': 'التالي',
+            'btn.previous': 'السابق',
+            'btn.submit': 'إرسال',
+            'btn.approve': 'موافقة',
+            'btn.reject': 'رفض',
+            'btn.filter': 'تصفية',
+            'btn.clear': 'مسح',
+            'btn.download': 'تحميل',
+            'btn.upload': 'رفع',
+            'btn.new': 'جديد',
+            'btn.create': 'إنشاء',
+            'btn.update': 'تحديث',
+            'btn.confirm': 'تأكيد',
+            'btn.yes': 'نعم',
+            'btn.no': 'لا',
+
+            // عناوين الجداول
+            'table.actions': 'الإجراءات',
+            'table.status': 'الحالة',
+            'table.date': 'التاريخ',
+            'table.name': 'الاسم',
+            'table.type': 'النوع',
+            'table.description': 'الوصف',
+            'table.notes': 'ملاحظات',
+            'table.priority': 'الأولوية',
+            'table.department': 'القسم',
+            'table.location': 'الموقع',
+            'table.code': 'الكود',
+            'table.id': 'المعرف',
+            'table.created': 'تاريخ الإنشاء',
+            'table.updated': 'تاريخ التحديث',
+            'table.by': 'بواسطة',
+            'table.count': 'العدد',
+            'table.total': 'المجموع',
+
+            // رسومات الهيكل (Skeleton)
+            'skeleton.loading': 'جاري التحميل...',
+            'skeleton.noData': 'لا توجد بيانات',
+            'skeleton.error': 'حدث خطأ أثناء التحميل',
+            'skeleton.retry': 'إعادة المحاولة',
+            'skeleton.empty': 'لا توجد عناصر لعرضها',
+
+            // رسائل عامة
+            'msg.success': 'تم بنجاح',
+            'msg.error': 'حدث خطأ',
+            'msg.warning': 'تنبيه',
+            'msg.info': 'معلومات',
+            'msg.confirm': 'هل أنت متأكد؟',
+            'msg.saved': 'تم الحفظ بنجاح',
+            'msg.deleted': 'تم الحذف بنجاح',
+            'msg.updated': 'تم التحديث بنجاح',
+            'msg.loading': 'جاري التحميل...',
+            'msg.processing': 'جاري المعالجة...',
+            'msg.noResults': 'لا توجد نتائج',
+            'msg.searchPlaceholder': 'ابحث هنا...',
+            'msg.select': 'اختر...',
+            'msg.all': 'الكل',
+            'msg.none': 'لا شيء',
+            'msg.required': 'حقل مطلوب',
+            'msg.invalid': 'بيانات غير صالحة',
+            'msg.networkError': 'خطأ في الاتصال بالشبكة',
+            'msg.serverError': 'خطأ في الخادم',
+            'msg.timeout': 'انتهت المهلة',
+            'msg.unauthorized': 'غير مصرح',
+            'msg.forbidden': 'غير مسموح',
+            'msg.notFound': 'غير موجود',
+
+            // فلاتر
+            'filter.all': 'الكل',
+            'filter.active': 'نشط',
+            'filter.inactive': 'غير نشط',
+            'filter.pending': 'معلق',
+            'filter.approved': 'معتمد',
+            'filter.rejected': 'مرفوض',
+            'filter.completed': 'مكتمل',
+            'filter.open': 'مفتوح',
+            'filter.closed': 'مغلق',
+            'filter.dateFrom': 'من تاريخ',
+            'filter.dateTo': 'إلى تاريخ',
+
+            // صفحات
+            'pagination.prev': 'السابق',
+            'pagination.next': 'التالي',
+            'pagination.first': 'الأول',
+            'pagination.last': 'الأخير',
+            'pagination.of': 'من',
+            'pagination.items': 'عناصر',
+            'pagination.page': 'صفحة',
+            'pagination.showing': 'عرض',
+            'pagination.to': 'إلى',
+
+            // موديولات
+            'module.dashboard': 'لوحة التحكم',
+            'module.users': 'المستخدمين',
+            'module.employees': 'الموظفين',
+            'module.incidents': 'الحوادث',
+            'module.nearmiss': 'التقارير القريبة',
+            'module.ptw': 'تصاريح العمل',
+            'module.training': 'التدريب',
+            'module.clinic': 'العيادة',
+            'module.fireequipment': 'معدات الحريق',
+            'module.ppe': 'معدات الوقاية',
+            'module.contractors': 'المقاولين',
+            'module.violations': 'المخالفات',
+            'module.reports': 'التقارير',
+            'module.settings': 'الإعدادات',
+            'module.behavior': 'مراقبة السلوك',
+            'module.chemicals': 'المواد الكيميائية',
+            'module.observations': 'المشاهدات اليومية',
+            'module.iso': 'ISO',
+            'module.emergency': 'الطوارئ',
+            'module.risk': 'تقييم المخاطر',
+            'module.documents': 'المستندات',
+            'module.audit': 'التدقيق',
+            'module.sustainability': 'الاستدامة',
+            'module.inspections': 'الفحوصات',
+            'module.safetyteam': 'فريق السلامة',
+        },
+        en: {
+            // Common Buttons
+            'btn.add': 'Add',
+            'btn.edit': 'Edit',
+            'btn.delete': 'Delete',
+            'btn.save': 'Save',
+            'btn.cancel': 'Cancel',
+            'btn.close': 'Close',
+            'btn.refresh': 'Refresh',
+            'btn.search': 'Search',
+            'btn.reset': 'Reset',
+            'btn.export': 'Export',
+            'btn.import': 'Import',
+            'btn.print': 'Print',
+            'btn.view': 'View',
+            'btn.details': 'Details',
+            'btn.back': 'Back',
+            'btn.next': 'Next',
+            'btn.previous': 'Previous',
+            'btn.submit': 'Submit',
+            'btn.approve': 'Approve',
+            'btn.reject': 'Reject',
+            'btn.filter': 'Filter',
+            'btn.clear': 'Clear',
+            'btn.download': 'Download',
+            'btn.upload': 'Upload',
+            'btn.new': 'New',
+            'btn.create': 'Create',
+            'btn.update': 'Update',
+            'btn.confirm': 'Confirm',
+            'btn.yes': 'Yes',
+            'btn.no': 'No',
+
+            // Table Headers
+            'table.actions': 'Actions',
+            'table.status': 'Status',
+            'table.date': 'Date',
+            'table.name': 'Name',
+            'table.type': 'Type',
+            'table.description': 'Description',
+            'table.notes': 'Notes',
+            'table.priority': 'Priority',
+            'table.department': 'Department',
+            'table.location': 'Location',
+            'table.code': 'Code',
+            'table.id': 'ID',
+            'table.created': 'Created Date',
+            'table.updated': 'Updated Date',
+            'table.by': 'By',
+            'table.count': 'Count',
+            'table.total': 'Total',
+
+            // Skeleton Loading
+            'skeleton.loading': 'Loading...',
+            'skeleton.noData': 'No data available',
+            'skeleton.error': 'Error loading data',
+            'skeleton.retry': 'Retry',
+            'skeleton.empty': 'No items to display',
+
+            // Common Messages
+            'msg.success': 'Success',
+            'msg.error': 'Error occurred',
+            'msg.warning': 'Warning',
+            'msg.info': 'Information',
+            'msg.confirm': 'Are you sure?',
+            'msg.saved': 'Saved successfully',
+            'msg.deleted': 'Deleted successfully',
+            'msg.updated': 'Updated successfully',
+            'msg.loading': 'Loading...',
+            'msg.processing': 'Processing...',
+            'msg.noResults': 'No results found',
+            'msg.searchPlaceholder': 'Search here...',
+            'msg.select': 'Select...',
+            'msg.all': 'All',
+            'msg.none': 'None',
+            'msg.required': 'Required field',
+            'msg.invalid': 'Invalid data',
+            'msg.networkError': 'Network connection error',
+            'msg.serverError': 'Server error',
+            'msg.timeout': 'Request timeout',
+            'msg.unauthorized': 'Unauthorized',
+            'msg.forbidden': 'Forbidden',
+            'msg.notFound': 'Not found',
+
+            // Filters
+            'filter.all': 'All',
+            'filter.active': 'Active',
+            'filter.inactive': 'Inactive',
+            'filter.pending': 'Pending',
+            'filter.approved': 'Approved',
+            'filter.rejected': 'Rejected',
+            'filter.completed': 'Completed',
+            'filter.open': 'Open',
+            'filter.closed': 'Closed',
+            'filter.dateFrom': 'Date From',
+            'filter.dateTo': 'Date To',
+
+            // Pagination
+            'pagination.prev': 'Previous',
+            'pagination.next': 'Next',
+            'pagination.first': 'First',
+            'pagination.last': 'Last',
+            'pagination.of': 'of',
+            'pagination.items': 'items',
+            'pagination.page': 'Page',
+            'pagination.showing': 'Showing',
+            'pagination.to': 'to',
+
+            // Modules
+            'module.dashboard': 'Dashboard',
+            'module.users': 'Users',
+            'module.employees': 'Employees',
+            'module.incidents': 'Incidents',
+            'module.nearmiss': 'Near Miss Reports',
+            'module.ptw': 'Work Permits',
+            'module.training': 'Training',
+            'module.clinic': 'Clinic',
+            'module.fireequipment': 'Fire Equipment',
+            'module.ppe': 'PPE',
+            'module.contractors': 'Contractors',
+            'module.violations': 'Violations',
+            'module.reports': 'Reports',
+            'module.settings': 'Settings',
+            'module.behavior': 'Behavior Monitoring',
+            'module.chemicals': 'Chemical Safety',
+            'module.observations': 'Daily Observations',
+            'module.iso': 'ISO',
+            'module.emergency': 'Emergency',
+            'module.risk': 'Risk Assessment',
+            'module.documents': 'Documents',
+            'module.audit': 'Audit',
+            'module.sustainability': 'Sustainability',
+            'module.inspections': 'Inspections',
+            'module.safetyteam': 'Safety Team',
+        }
+    },
+
+    /**
+     * الحصول على اللغة الحالية
+     * @returns {string} 'ar' أو 'en'
+     */
+    getCurrentLanguage() {
+        return AppState?.currentLanguage || localStorage.getItem('language') || this.defaultLanguage;
+    },
+
+    /**
+     * التحقق من RTL
+     * @returns {boolean}
+     */
+    isRTL() {
+        return this.getCurrentLanguage() === 'ar';
+    },
+
+    /**
+     * الحصول على ترجمة
+     * @param {string} key - مفتاح الترجمة
+     * @param {string} defaultValue - القيمة الافتراضية
+     * @returns {string}
+     */
+    t(key, defaultValue = null) {
+        const lang = this.getCurrentLanguage();
+        const translation = this.translations[lang]?.[key];
+        return translation || defaultValue || key;
+    },
+
+    /**
+     * إضافة ترجمات جديدة
+     * @param {string} lang - اللغة ('ar' أو 'en')
+     * @param {Object} newTranslations - كائن الترجمات الجديدة
+     */
+    addTranslations(lang, newTranslations) {
+        if (!this.translations[lang]) {
+            this.translations[lang] = {};
+        }
+        Object.assign(this.translations[lang], newTranslations);
+    },
+
+    /**
+     * الحصول على ترجمات موديول معين
+     * @param {string} moduleName - اسم الموديول
+     * @returns {Object} { t: function, isRTL: boolean, lang: string }
+     */
+    getModuleTranslations(moduleName) {
+        const lang = this.getCurrentLanguage();
+        const isRTL = this.isRTL();
+
+        return {
+            t: (key, defaultValue) => this.t(`${moduleName}.${key}`, defaultValue),
+            isRTL,
+            lang
+        };
+    }
+};
+
+// Export I18n globally
+if (typeof window !== 'undefined') {
+    window.I18n = I18n;
+}
