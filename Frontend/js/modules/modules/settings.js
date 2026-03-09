@@ -181,9 +181,9 @@ const Settings = {
             <div class="section-header">
                 <h1 class="section-title">
                     <i class="fas fa-cog ml-3"></i>
-                    الإعدادات
+                    ${I18n.t('settings.title')}
                 </h1>
-                <p class="section-subtitle">إدارة إعدادات النظام والتكامل والصلاحيات</p>
+                <p class="section-subtitle">${I18n.t('settings.subtitle')}</p>
             </div>
 
             <!-- Tabs Navigation -->
@@ -191,112 +191,112 @@ const Settings = {
                 <div class="tabs-nav">
                     <button class="tab-btn active" data-tab="company-data">
                         <i class="fas fa-building ml-2"></i>
-                        بيانات الشركة والهوية
+                        ${I18n.t('settings.tabs.company')}
                     </button>
                     <button class="tab-btn" data-tab="integration">
                         <i class="fas fa-cloud ml-2"></i>
-                        التكامل والمزامنة
+                        ${I18n.t('settings.tabs.integration')}
                     </button>
                     <button class="tab-btn" data-tab="cloud-storage">
                         <i class="fas fa-cloud-upload-alt ml-2"></i>
-                        تكامل التخزين السحابي
+                        ${I18n.t('settings.tabs.cloud')}
                     </button>
                     <button class="tab-btn" data-tab="google-drive">
                         <i class="fab fa-google-drive ml-2"></i>
-                        Google Drive
+                        ${I18n.t('settings.tabs.drive')}
                     </button>
                     <button class="tab-btn" data-tab="sharepoint">
                         <i class="fab fa-microsoft ml-2"></i>
-                        Microsoft SharePoint
+                        ${I18n.t('settings.tabs.sharepoint')}
                     </button>
                     <button class="tab-btn" data-tab="system-settings">
                         <i class="fas fa-sliders-h ml-2"></i>
-                        إعدادات النظام
+                        ${I18n.t('settings.tabs.system')}
                     </button>
                     <button class="tab-btn" data-tab="form-settings">
                         <i class="fas fa-file-alt ml-2"></i>
-                        إعدادات النماذج
+                        ${I18n.t('settings.tabs.forms')}
                     </button>
                     <button class="tab-btn" data-tab="violation-types">
                         <i class="fas fa-tags ml-2"></i>
-                        إدارة أنواع المخالفات
+                        ${I18n.t('settings.tabs.violations')}
                     </button>
                     <button class="tab-btn" data-tab="reports">
                         <i class="fas fa-file-pdf ml-2"></i>
-                        التقارير والإشعارات
+                        ${I18n.t('settings.tabs.reports')}
                     </button>
                     <button class="tab-btn" data-tab="notifications">
                         <i class="fas fa-envelope ml-2"></i>
-                        إدارة الإشعارات الإلكترونية
+                        ${I18n.t('settings.tabs.email')}
                     </button>
                     <button class="tab-btn" data-tab="permissions">
                         <i class="fas fa-shield-alt ml-2"></i>
-                        الصلاحيات والاعتمادات
+                        ${I18n.t('settings.tabs.permissions')}
                     </button>
                     <button class="tab-btn" data-tab="approval-circuit">
                         <i class="fas fa-project-diagram ml-2"></i>
-                        دائرة الاعتمادات والصلاحيات
+                        ${I18n.t('settings.tabs.circuit')}
                     </button>
                     <button class="tab-btn" data-tab="logs" ${!isAdmin ? 'style="display:none;"' : ''}>
                         <i class="fas fa-history ml-2"></i>
-                        السجلات والمراقبة
+                        ${I18n.t('settings.tabs.logs')}
                     </button>
                 </div>
             </div>
 
-            <!-- Tab Content: بيانات الشركة والهوية -->
+            <!-- Tab Content: Company Data -->
             <div class="tab-content active" id="tab-company-data">
                 <div class="settings-group mt-6">
                 <div class="settings-group-header">
                     <h2 class="settings-group-title">
                         <i class="fas fa-building text-blue-600 ml-2"></i>
-                        بيانات الشركة والهوية
+                        ${I18n.t('settings.company.title')}
                     </h2>
-                    <p class="settings-group-subtitle">إعدادات معلومات الشركة والشعار والهوية البصرية</p>
+                    <p class="settings-group-subtitle">${I18n.t('settings.company.subtitle')}</p>
                 </div>
                 <div class="settings-group-content">
                     <div class="content-card">
                         <div class="card-header">
-                            <h2 class="card-title"><i class="fas fa-building ml-2"></i>بيانات الشركة</h2>
+                            <h2 class="card-title"><i class="fas fa-building ml-2"></i>${I18n.t('settings.company.title')}</h2>
                         </div>
                         <div class="card-body space-y-4">
                             <div>
                                 <label for="company-name-input" class="block text-sm font-semibold text-gray-700 mb-2">
                                     <i class="fas fa-pen ml-2"></i>
-                                    اسم الشركة (يظهر في الهيدر والتقارير)
+                                    ${I18n.t('settings.company.name')}
                                 </label>
                                 <input type="text" id="company-name-input" class="form-input"
-                                    placeholder="أدخل اسم الشركة" value="${Utils.escapeHTML(AppState.companySettings?.name || '')}">
+                                    placeholder="${I18n.isRTL() ? 'أدخل اسم الشركة' : 'Enter company name'}" value="${Utils.escapeHTML(AppState.companySettings?.name || '')}">
                                 <p class="text-xs text-gray-500 mt-1">
                                     <i class="fas fa-info-circle ml-1"></i>
-                                    سيتم استخدام هذا الاسم في رأس التطبيق وجميع تقارير PDF.
+                                    ${I18n.t('settings.company.nameHint')}
                                 </p>
                             </div>
                             <div>
                                 <label for="company-name-font-size-input" class="block text-sm font-semibold text-gray-700 mb-2">
                                     <i class="fas fa-text-height ml-2"></i>
-                                    حجم خط اسم الشركة (بالبكسل)
+                                    ${I18n.t('settings.company.fontSize')}
                                 </label>
                                 <div class="flex items-center gap-3">
                                     <input type="number" id="company-name-font-size-input" class="form-input" min="8" max="72" step="1"
-                                        placeholder="مثال: 16" value="${AppState.companySettings?.nameFontSize || '16'}">
-                                    <span class="text-xs text-gray-500">بكسل</span>
+                                        placeholder="${I18n.isRTL() ? 'مثال: 16' : 'e.g., 16'}" value="${AppState.companySettings?.nameFontSize || '16'}">
+                                    <span class="text-xs text-gray-500">${I18n.isRTL() ? 'بكسل' : 'px'}</span>
                                 </div>
                                 <p class="text-xs text-gray-500 mt-1">
                                     <i class="fas fa-info-circle ml-1"></i>
-                                    حجم الخط الافتراضي: 16 بكسل. يمكنك تغييره من 8 إلى 72 بكسل.
+                                    ${I18n.t('settings.company.fontSizeHint')}
                                 </p>
                             </div>
                             <div>
                                 <label for="company-secondary-name-input" class="block text-sm font-semibold text-gray-700 mb-2">
                                     <i class="fas fa-pen-nib ml-2"></i>
-                                    الاسم الإضافي / السطر الإضافي للشركة (يظهر في الهيدر والتقارير)
+                                    ${I18n.t('settings.company.secondaryName')}
                                 </label>
                                 <input type="text" id="company-secondary-name-input" class="form-input"
-                                    placeholder="أدخل الاسم الإضافي للشركة" value="${Utils.escapeHTML(AppState.companySettings?.secondaryName || '')}">
+                                    placeholder="${I18n.isRTL() ? 'أدخل الاسم الإضافي للشركة' : 'Enter secondary company name'}" value="${Utils.escapeHTML(AppState.companySettings?.secondaryName || '')}">
                                 <p class="text-xs text-gray-500 mt-1">
                                     <i class="fas fa-info-circle ml-1"></i>
-                                    سيتم عرض هذا السطر أسفل اسم الشركة في الهيدر والتقارير. إذا تُرك فارغًا لن يظهر في الواجهة أو PDF.
+                                    ${I18n.t('settings.company.secondaryNameHint')}
                                 </p>
                             </div>
                             <div>
